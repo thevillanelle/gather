@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Gather — Team Event Intelligence</title>
+<style>
+:root{
+  --bg:#f5f5f7;--card:#fff;--card2:#fafafa;--text:#1d1d1f;--sub:#6e6e73;--sec:#3a3a3c;
+  --border:#e5e5ea;--inp:#fff;--tag:#f5f5f7;--chip-border:#d2d2d7;
+  --header:rgba(255,255,255,.93);--sh:rgba(0,0,0,.06);--sh2:rgba(0,0,0,.12);
+  --opt-sel-bg:#e8f0ff;--acc-hdr:#fafafa;--blue:#4f46e5;
+}
+[data-dark]{
+  --bg:#000;--card:#1c1c1e;--card2:#2c2c2e;--text:#f5f5f7;--sub:#aeaeb2;--sec:#d1d1d6;
+  --border:#38383a;--inp:#2c2c2e;--tag:#2c2c2e;--chip-border:#48484a;
+  --header:rgba(28,28,30,.95);--sh:rgba(0,0,0,.3);--sh2:rgba(0,0,0,.5);
+  --opt-sel-bg:#1e1b4b;--acc-hdr:#2c2c2e;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .25s,color .25s}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* SPLASH */
+#splash{position:fixed;inset:0;background:#0c0c1a;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity .9s ease}
+#splash.out{opacity:0;pointer-events:none}
+#splash-canvas{position:absolute;inset:0;width:100%;height:100%}
+#splash-inner{position:relative;z-index:2;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px;animation:sIn .8s ease}
+@keyframes sIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+#splash-title{color:#fff;font-size:40px;font-weight:800;letter-spacing:-1px}
+#splash-title span{background:linear-gradient(135deg,#818cf8,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+#splash-sub{color:rgba(255,255,255,.45);font-size:13px;letter-spacing:2px;text-transform:uppercase}
+#splash-skip{margin-top:20px;padding:8px 22px;border:1px solid rgba(255,255,255,.18);border-radius:20px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.55);font-size:12px;cursor:pointer;transition:all .2s;font-family:inherit}
+#splash-skip:hover{background:rgba(255,255,255,.12);color:#fff}
+.da{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.2);animation:dp 1.4s ease infinite;display:inline-block;margin:0 3px}
+.da:nth-child(2){animation-delay:.2s}.da:nth-child(3){animation-delay:.4s}
+@keyframes dp{0%,100%{background:rgba(255,255,255,.2)}50%{background:rgba(129,140,248,.8)}}
+
+/* HEADER */
+.hdr{background:var(--header);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;transition:background .25s}
+.hdr-i{max-width:980px;margin:0 auto;padding:12px 24px}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,#4f46e5,#60a5fa);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.logo-title{font-size:16px;font-weight:800;color:var(--text);letter-spacing:-.3px}
+.logo-sub{font-size:11px;color:var(--sub)}
+.hdr-r{display:flex;align-items:center;gap:10px}
+.live-b{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--sub)}
+.live-d{width:7px;height:7px;border-radius:50%;background:#34c759;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.theme-b{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+.tabs{display:flex;overflow-x:auto}
+.tab{padding:9px 16px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;color:var(--sub);white-space:nowrap;transition:all .15s}
+.tab:hover{color:var(--text)}.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+/* LAYOUT */
+.main{max-width:980px;margin:0 auto;padding:28px 24px}
+.card{background:var(--card);border-radius:16px;padding:24px;box-shadow:0 2px 12px var(--sh);margin-bottom:18px;transition:background .25s}
+.card-feat{border:2px solid var(--blue);box-shadow:0 4px 24px rgba(79,70,229,.15)}
+.pg-title{font-size:22px;font-weight:700;margin-bottom:4px;color:var(--text)}
+.pg-sub{font-size:14px;color:var(--sub);margin-bottom:24px}
+.sec-lbl{font-size:11px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px}
+.lbl{font-size:12px;font-weight:500;color:var(--sec);margin-bottom:6px;display:block}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s;font-family:inherit}
+.btn-p{background:var(--blue);color:#fff}.btn-p:hover{opacity:.9}
+.btn-p:disabled{background:#a5b4fc;cursor:not-allowed}
+.btn-g{background:var(--tag);color:var(--text)}.btn-g:hover{opacity:.8}
+.btn-o{background:var(--card);color:var(--blue);border:1px solid var(--border)}
+
+/* PROGRESS */
+.prog{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:16px}
+.prog-f{height:100%;background:var(--blue);border-radius:2px;transition:width .4s ease}
+.step-row{display:flex;align-items:center;gap:5px;margin-bottom:18px;flex-wrap:wrap}
+.sdot{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.sline{flex:1;height:1px;max-width:18px}
+.sd{background:var(--blue);color:#fff}.sa{background:var(--blue);color:#fff}.sp{background:var(--border);color:var(--sub)}
+
+/* OPTIONS */
+.q-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px}
+.q-sub{font-size:13px;color:var(--sub);margin-bottom:18px}
+.opts{display:flex;flex-direction:column;gap:9px}
+.opt{display:flex;align-items:center;gap:12px;padding:12px 16px;border:2px solid var(--border);border-radius:13px;cursor:pointer;transition:all .15s;background:var(--card)}
+.opt:hover{border-color:#a5b4fc;transform:translateY(-1px)}.opt.sel{border-color:var(--blue);background:var(--opt-sel-bg)}
+.opt-icon{font-size:20px;flex-shrink:0;width:30px;text-align:center}
+.opt-lbl{font-size:14px;font-weight:500;color:var(--text)}
+.opt-desc{font-size:12px;color:var(--sub)}
+.opt-per{font-size:11px;color:var(--blue);font-weight:500;margin-top:2px}
+.opt-radio{width:17px;height:17px;border-radius:50%;border:2px solid var(--chip-border);margin-left:auto;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.opt.sel .opt-radio{border-color:var(--blue);background:var(--blue)}
+.ri{width:7px;height:7px;border-radius:50%;background:#fff}
+
+/* CHIPS */
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}
+.chip{padding:7px 14px;border-radius:20px;border:1.5px solid var(--chip-border);font-size:13px;cursor:pointer;transition:all .15s;background:var(--inp);color:var(--sec);font-family:inherit}
+.chip:hover{border-color:#a5b4fc}.chip.sel{border-color:var(--blue);background:var(--opt-sel-bg);color:var(--blue)}
+.rbtn{flex:1;padding:9px 6px;border:1.5px solid var(--chip-border);border-radius:10px;font-size:12px;font-weight:500;cursor:pointer;text-align:center;transition:all .15s;background:var(--inp);color:var(--sec);font-family:inherit}
+.rbtn:hover{border-color:#a5b4fc}.rbtn.sel{border-color:var(--blue);background:var(--opt-sel-bg);color:var(--blue)}
+
+/* INPUTS */
+input[type=text],input[type=date],select,textarea{width:100%;padding:10px 13px;border:1.5px solid var(--chip-border);border-radius:10px;font-size:14px;font-family:inherit;background:var(--inp);color:var(--text);outline:none;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(79,70,229,.1)}
+textarea{resize:vertical;min-height:80px}
+select option{background:var(--inp);color:var(--text)}
+
+/* CHECKLIST */
+.chk-item{display:flex;align-items:flex-start;gap:8px;cursor:pointer;padding:4px 0}
+.chk-box{width:17px;height:17px;border-radius:4px;border:2px solid var(--chip-border);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.chk-box.on{border-color:var(--blue);background:var(--blue)}
+.chk-lbl{font-size:13px;color:var(--sec);line-height:1.4}.chk-lbl.done{text-decoration:line-through;color:var(--sub)}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,#4f46e5,#60a5fa);border-radius:16px;padding:28px;color:#fff;margin-bottom:18px;position:relative;overflow:hidden}
+.hero::after{content:'';position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.07);pointer-events:none}
+
+/* JUMP NAV */
+.jump-nav{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px;padding:16px;background:var(--card2);border-radius:12px;border:1px solid var(--border)}
+.jump-nav-lbl{font-size:11px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;width:100%;margin-bottom:8px}
+.jump-btn{padding:7px 14px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;border:1.5px solid var(--border);background:var(--card);color:var(--text);transition:all .15s;font-family:inherit}
+.jump-btn:hover{border-color:var(--blue);color:var(--blue)}
+.anchor-section{scroll-margin-top:110px}
+
+/* SETUP */
+.setup-steps{display:flex;flex-direction:column;gap:18px}
+.sstep{display:flex;gap:14px}
+.snum{width:30px;height:30px;border-radius:50%;background:var(--blue);color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.stitle{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+.sdesc{font-size:13px;color:var(--sub);line-height:1.55}
+
+/* CODE */
+.code-box{background:#0f0f1a;border-radius:12px;padding:16px;position:relative;margin-top:12px}
+.code-lbl{font-size:10px;font-weight:600;color:#6e6e73;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.code-text{font-family:'SF Mono','Fira Code','Courier New',monospace;font-size:11px;color:#e5e5ea;white-space:pre-wrap;line-height:1.65}
+.copy-btn{position:absolute;top:12px;right:12px;padding:5px 12px;border-radius:7px;background:var(--blue);color:#fff;font-size:11px;font-weight:600;cursor:pointer;border:none;font-family:inherit}
+.copy-btn.ok{background:#34c759}
+.url-pill{display:inline-flex;align-items:center;gap:6px;background:#ede9fe;color:#4f46e5;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;margin:4px 0;text-decoration:none}
+[data-dark] .url-pill{background:#1e1b4b}
+
+/* ACCORDION */
+.acc-item{border:1.5px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:8px}
+.acc-hdr{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text);background:var(--acc-hdr)}
+.acc-arrow{color:var(--blue);font-size:11px}
+.acc-body{padding:0 16px;max-height:0;overflow:hidden;transition:max-height .3s ease,padding .2s}
+.acc-body.open{max-height:300px;padding:12px 16px}
+.acc-body p{font-size:13px;color:var(--sub);line-height:1.55}
+.sep{height:1px;background:var(--border);margin:18px 0}
+
+/* BADGE */
+.badge-best{background:#ede9fe;color:#4f46e5;display:inline-block;margin-bottom:10px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+
+/* INTAKE */
+.qz-flavor{font-size:13px;color:var(--blue);font-weight:500;margin-bottom:6px}
+.qz-head{font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px}
+.qz-sub{font-size:13px;color:var(--sub);margin-bottom:18px}
+.profile-card{background:linear-gradient(135deg,#4f46e5,#60a5fa);border-radius:16px;padding:24px;color:#fff;text-align:center;margin-bottom:18px}
+.profile-card h3{font-size:20px;font-weight:700;margin-bottom:4px}
+.profile-tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px}
+.p-tag{background:rgba(255,255,255,.2);border-radius:20px;padding:4px 12px;font-size:12px}
+.form-g{display:grid;gap:14px}.form-2{grid-template-columns:1fr 1fr}
+.r-grp{display:flex;gap:8px}
+.toggle-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--tag);border-radius:10px;margin-top:10px}
+.toggle-switch{width:40px;height:22px;border-radius:11px;background:var(--border);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle-switch.on{background:var(--blue)}.toggle-knob{width:18px;height:18px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:transform .2s}
+.toggle-switch.on .toggle-knob{transform:translateX(18px)}
+
+/* TEAM CARDS */
+.team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.team-card{background:var(--tag);border-radius:14px;padding:22px 14px;text-align:center;transition:all .2s}
+.team-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px var(--sh2)}
+.team-emoji{font-size:48px;margin-bottom:10px;display:block}
+.team-name{font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px}
+.team-bio{font-size:12px;color:var(--sub);line-height:1.5;margin-bottom:10px}
+.team-contact{font-size:13px;color:var(--blue);text-decoration:none;font-weight:500}
+
+/* MAP */
+.map-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.map-stat{background:var(--card);border-radius:12px;padding:14px;text-align:center}
+.ms-val{font-size:22px;font-weight:700;color:var(--blue)}.ms-lbl{font-size:11px;color:var(--sub);margin-top:2px}
+.map-controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.map-srch{padding:9px 14px;border:1.5px solid var(--chip-border);border-radius:10px;font-size:13px;font-family:inherit;outline:none;flex:1;min-width:180px;background:var(--inp);color:var(--text)}
+.map-srch:focus{border-color:var(--blue)}
+.map-fb{padding:7px 14px;border:1.5px solid var(--border);border-radius:20px;font-size:12px;cursor:pointer;background:var(--card);color:var(--sub);font-family:inherit;transition:all .15s}
+.map-fb:hover{border-color:var(--blue);color:var(--blue)}.map-fb.active{border-color:var(--blue);background:var(--opt-sel-bg);color:var(--blue)}
+.map-wrap{background:var(--card);border-radius:16px;overflow:hidden;box-shadow:0 2px 12px var(--sh);position:relative}
+canvas{display:block;width:100%;cursor:grab}canvas:active{cursor:grabbing}
+.tt{position:absolute;background:var(--card);border-radius:12px;padding:14px;box-shadow:0 8px 32px var(--sh2);border:1px solid var(--border);min-width:195px;pointer-events:none;z-index:20}
+.tt-n{font-size:14px;font-weight:700;margin-bottom:2px;color:var(--text)}
+.tt-s{font-size:12px;color:var(--sub);margin-bottom:8px}
+.tt-row{display:flex;gap:6px;margin-bottom:3px;font-size:12px}
+.tt-k{color:var(--sub);min-width:72px}.tt-v{color:var(--text);font-weight:500}
+.map-leg{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+.leg-i{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--sub)}
+.leg-d{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.insight-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.insight-lbl{font-size:12px;color:var(--text);min-width:150px}
+.insight-track{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.insight-fill{height:100%;border-radius:3px;transition:width .6s ease}
+.insight-cnt{font-size:12px;color:var(--sub);min-width:28px;text-align:right}
+.result-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.custom-sum{background:linear-gradient(135deg,#4f46e5,#60a5fa);border-radius:13px;padding:18px 20px;color:#fff;margin-bottom:20px;font-size:14px;line-height:1.6}
+.webex-tip{background:#ede9fe;border-radius:10px;padding:10px 14px;font-size:12px;color:#4f46e5;margin-top:10px;border-left:3px solid #4f46e5}
+[data-dark] .webex-tip{background:#1e1b4b}
+.eg-agent{background:var(--tag);border-radius:12px;padding:16px;margin-top:12px;font-size:12px;line-height:1.65;color:var(--sec)}
+.akey{color:var(--blue);font-weight:600}
+.tok-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.tok-card{background:var(--tag);border-radius:12px;padding:14px}
+.fade{animation:fi .3s ease}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <canvas id="splash-canvas"></canvas>
+  <div id="splash-inner">
+    <div style="font-size:64px;filter:drop-shadow(0 0 30px rgba(129,140,248,.6))">🌐</div>
+    <div id="splash-title">Ga<span>ther</span></div>
+    <div id="splash-sub">Team Event Intelligence</div>
+    <div><span class="da"></span><span class="da"></span><span class="da"></span></div>
+    <button id="splash-skip" onclick="dismissSplash()">Enter →</button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-i">
+    <div class="hdr-top">
+      <div class="logo">
+        <div class="logo-icon">🌐</div>
+        <div><div class="logo-title">Gather</div><div class="logo-sub">Team Event Intelligence Platform</div></div>
+      </div>
+      <div class="hdr-r">
+        <div class="live-b"><div class="live-d"></div>Demo</div>
+        <button class="theme-b" id="theme-btn" onclick="toggleTheme()">🌙</button>
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('portal',this)">🎯 Event Portal</button>
+      <button class="tab" onclick="showTab('edu',this)">🤖 Build Your Agent</button>
+      <button class="tab" onclick="showTab('intake',this)">✨ Join the Team</button>
+      <button class="tab" onclick="showTab('mindmap',this)">💡 What We Love</button>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- MODULE 1: EVENT PORTAL -->
+<div id="tab-portal" class="fade">
+  <div class="pg-title">Event Planning Portal</div>
+  <div class="pg-sub">Ten questions. One fully custom event plan — built for your team, your timeline, and your budget.</div>
+  <div class="card" id="questionnaire">
+    <div class="prog"><div class="prog-f" id="progress" style="width:0%"></div></div>
+    <div class="step-row" id="step-dots"></div>
+    <div id="question-area"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:22px">
+      <button class="btn btn-g" id="btn-back" onclick="prevStep()" style="display:none">← Back</button>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+        <span id="step-ctr" style="font-size:12px;color:var(--sub)"></span>
+        <button class="btn btn-p" id="btn-next" onclick="nextStep()" disabled>Next →</button>
+      </div>
+    </div>
+  </div>
+  <div id="results-area" style="display:none"></div>
+</div>
+
+<!-- MODULE 2: BUILD YOUR AGENT (Claude.ai) -->
+<div id="tab-edu" style="display:none" class="fade">
+  <div class="pg-title">Build Your AI Event Planning Agent</div>
+  <div class="pg-sub">This guide has one goal: help you set up a custom Claude agent that drafts complete event plans in 60 seconds, every time.</div>
+
+  <div class="jump-nav">
+    <div class="jump-nav-lbl">Jump to where you are →</div>
+    <button class="jump-btn" onclick="jumpTo('s-overview')">🌱 Starting from zero</button>
+    <button class="jump-btn" onclick="jumpTo('s-project')">📁 Have Claude, need a Project</button>
+    <button class="jump-btn" onclick="jumpTo('s-agent')">🤖 Ready to build my agent</button>
+    <button class="jump-btn" onclick="jumpTo('s-prompt')">⚡ Just give me the prompt</button>
+  </div>
+
+  <div class="card anchor-section" id="s-overview">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <div style="width:40px;height:40px;background:linear-gradient(135deg,#4f46e5,#60a5fa);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px">🤖</div>
+      <div><div style="font-size:16px;font-weight:700;color:var(--text)">What is Claude?</div><div style="font-size:12px;color:var(--sub)">Anthropic's AI assistant — your event planning superpower</div></div>
+    </div>
+    <p style="font-size:13px;color:var(--sec);line-height:1.65;margin-bottom:16px">Claude is an AI assistant made by Anthropic. The goal isn't just to chat — it's to <strong style="color:var(--text)">build a custom Project</strong> with persistent instructions so Claude already knows your role, your team's style, and how you plan events. Once it's built, you describe a situation and get a complete event plan. Every time.</p>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+      <div style="background:var(--tag);border-radius:12px;padding:12px"><div style="font-size:20px">💬</div><div style="font-size:12px;font-weight:600;margin-top:6px;color:var(--text)">Conversations</div><div style="font-size:11px;color:var(--sub)">Plan, draft, summarize, brainstorm</div></div>
+      <div style="background:var(--tag);border-radius:12px;padding:12px"><div style="font-size:20px">📁</div><div style="font-size:12px;font-weight:600;margin-top:6px;color:var(--text)">Projects</div><div style="font-size:11px;color:var(--sub)">Persistent memory + instructions</div></div>
+      <div style="background:var(--tag);border-radius:12px;padding:12px"><div style="font-size:20px">📄</div><div style="font-size:12px;font-weight:600;margin-top:6px;color:var(--text)">File Context</div><div style="font-size:11px;color:var(--sub)">Upload vendor lists, past events</div></div>
+      <div style="background:var(--tag);border-radius:12px;padding:12px"><div style="font-size:20px">🔗</div><div style="font-size:12px;font-weight:600;margin-top:6px;color:var(--text)">Shareable</div><div style="font-size:11px;color:var(--sub)">Share projects with your team</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="font-size:16px;font-weight:700;margin-bottom:20px;color:var(--text)">Five Steps to Get There</div>
+    <div class="setup-steps">
+      <div class="sstep"><div class="snum">1</div><div>
+        <div class="stitle">Create a Free Claude Account</div>
+        <div class="sdesc">Go to claude.ai and sign up with your email. The free tier is enough to start — Claude Pro gives more capacity, faster responses, and access to stronger models.</div>
+        <div style="margin-top:8px"><a class="url-pill" href="https://claude.ai" target="_blank">🔗 claude.ai</a></div>
+      </div></div>
+
+      <div class="sstep"><div class="snum">2</div><div id="s-project">
+        <div class="stitle">Create a Project</div>
+        <div class="sdesc">In the left sidebar, click the "+" next to Projects. Name it "Event Planning Agent". Projects give Claude persistent instructions and memory across every conversation — this is what makes it an agent, not just a chat.</div>
+      </div></div>
+
+      <div class="sstep"><div class="snum">3</div><div>
+        <div class="stitle">Set Project Instructions</div>
+        <div class="sdesc">Inside your project, click the settings icon (or "Edit project knowledge"). Paste the starter prompt from below. This tells Claude its role every single time you start a conversation in the project. No re-explaining needed.</div>
+      </div></div>
+
+      <div class="sstep"><div class="snum">4</div><div>
+        <div class="stitle">Add Context Files (Optional but powerful)</div>
+        <div class="sdesc">Inside your project, you can upload files — past event plans, vendor lists, team preference data, catering contacts. Claude reads these in every conversation, making plans dramatically more specific to your organization.</div>
+      </div></div>
+
+      <div class="sstep" id="s-agent"><div class="snum">5</div><div>
+        <div class="stitle">Build Your Agent — The Whole Point</div>
+        <div class="sdesc">Open a new conversation inside your Project. Describe your role, your team, what kinds of events you plan. Ask Claude to write your agent instructions — it'll produce a full script tailored to your work. Copy and paste it into Step 3.</div>
+        <div class="eg-agent" style="margin-top:12px">
+          <div><span class="akey">ROLE</span> — You are an AI event planning assistant for the [Team Name] engagement team. Your job is to generate complete, personalized event plans when a team member describes a situation.</div>
+          <div style="margin-top:8px"><span class="akey">RULES</span> — 1. Always ask about dietary restrictions and accessibility before finalizing in-person events. 2. Warm, practical tone. 3. Draft only — never take action without confirmation. 4. When format is virtual or hybrid, default to [your video platform].</div>
+          <div style="margin-top:8px"><span class="akey">OUTPUT FORMAT</span> — Always include: event title, custom description, logistics checklist, timeline, and 2–3 personalization ideas specific to the team's culture.</div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="font-size:16px;font-weight:700;margin-bottom:10px;color:var(--text)">✦ A note on context</div>
+    <p style="font-size:13px;color:var(--sub);line-height:1.6;margin-bottom:14px">Claude works with a "context window" — the maximum amount of text it can hold in one conversation. Claude Pro has a larger window. When you get close to the limit, start a new conversation inside your Project (instructions persist automatically). The more specific your prompt, the fewer back-and-forth rounds you need — which saves context and gets better results faster.</p>
+    <div class="tok-grid">
+      <div class="tok-card"><div style="font-size:20px">⌨️</div><div style="font-size:13px;font-weight:600;margin-top:6px;color:var(--text)">Your Input</div><div style="font-size:12px;color:var(--sub);margin-top:4px;line-height:1.5">Everything you type + uploaded files count toward the limit.</div></div>
+      <div class="tok-card"><div style="font-size:20px">💬</div><div style="font-size:13px;font-weight:600;margin-top:6px;color:var(--text)">Claude's Output</div><div style="font-size:12px;color:var(--sub);margin-top:4px;line-height:1.5">Longer, more detailed responses use more context.</div></div>
+      <div class="tok-card"><div style="font-size:20px">💡</div><div style="font-size:13px;font-weight:600;margin-top:6px;color:var(--text)">Pro Tip</div><div style="font-size:12px;color:var(--sub);margin-top:4px;line-height:1.5">Be specific in your first message. One great prompt beats five vague ones.</div></div>
+    </div>
+  </div>
+
+  <div class="card anchor-section" id="s-prompt">
+    <div style="font-size:16px;font-weight:700;margin-bottom:6px;color:var(--text)">⚡ Starter Prompt — Copy & Paste into Project Instructions</div>
+    <p style="font-size:13px;color:var(--sub);margin-bottom:12px">Paste this into your Claude Project instructions. Customize the bracketed fields for your team.</p>
+    <div class="code-box">
+      <div class="code-lbl">Event Planning Agent — Project Instructions</div>
+      <div class="code-text" id="prompt-text">You are an AI event planning assistant for the [Your Team Name] engagement team.
+
+When a team member asks for help planning an event, gather:
+- Event type (celebration, onboarding, recognition, collaboration, community)
+- Format (in-person, virtual, or hybrid)
+- Headcount and per-person budget
+- Lead time available and preferred time of day
+- Team composition (new, established, cross-functional, welcoming new hire)
+- Energy vibe (chill, fun/playful, high-energy, celebratory)
+- Considerations: remote team, international time zones, accessibility, dietary
+
+Generate: event title, custom description, complete logistics checklist
+(with video platform setup steps if virtual/hybrid), suggested timeline,
+and 2–3 personalization ideas specific to the team's culture.
+
+Always confirm dietary restrictions and accessibility needs before finalizing
+any in-person or hybrid event. Keep the tone warm and practical — good teams
+can tell when a plan is generic.</div>
+      <button class="copy-btn" id="copy-btn" onclick="copyPrompt()">📋 Copy</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="font-size:16px;font-weight:700;margin-bottom:16px;color:var(--text)">❓ FAQ</div>
+    <div id="faq"></div>
+  </div>
+</div>
+
+<!-- MODULE 3: JOIN THE TEAM -->
+<div id="tab-intake" style="display:none" class="fade">
+  <div class="pg-title">Join the Team ✨</div>
+  <div class="pg-sub">Tell your events team who you are — the more you share, the better the events they plan for you.</div>
+
+  <div class="card" style="margin-bottom:18px">
+    <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="togTeam()">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--text)">👋 Meet Your Events Team</div>
+        <div style="font-size:13px;color:var(--sub);margin-top:2px">The people behind your engagement experience</div>
+      </div>
+      <span id="team-arrow" style="font-size:13px;color:var(--blue);margin-left:16px;flex-shrink:0">▼ Show team</span>
+    </div>
+    <div id="team-body" style="display:none;margin-top:18px">
+      <div class="team-grid" id="events-team-grid"></div>
+    </div>
+  </div>
+
+  <div class="card" id="quiz-card">
+    <div class="prog"><div class="prog-f" id="quiz-progress" style="width:0%"></div></div>
+    <div class="step-row" id="quiz-dots"></div>
+    <div id="quiz-area"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:22px">
+      <button class="btn btn-g" id="quiz-back" onclick="prevQuiz()" style="display:none">← Back</button>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+        <span id="quiz-ctr" style="font-size:12px;color:var(--sub)"></span>
+        <button class="btn btn-p" id="quiz-next" onclick="nextQuiz()" disabled>Next →</button>
+      </div>
+    </div>
+  </div>
+  <div id="quiz-success" style="display:none"></div>
+</div>
+
+<!-- MODULE 4: WHAT WE LOVE MAP -->
+<div id="tab-mindmap" style="display:none" class="fade">
+  <div class="pg-title">What We Love 💡</div>
+  <div class="pg-sub">Built from intake responses. Every dot is a person. Every cluster is a shared love. Use this to plan events that actually land.</div>
+  <div class="map-stats" id="map-stats"></div>
+  <div class="map-controls">
+    <input class="map-srch" id="map-search" placeholder="🔍 Search a person..." oninput="filterMap()">
+    <button class="map-fb active" onclick="setFilt('all',this)">All</button>
+    <button class="map-fb" onclick="setFilt('time',this)">⏰ Time</button>
+    <button class="map-fb" onclick="setFilt('energy',this)">⚡ Energizers</button>
+    <button class="map-fb" onclick="setFilt('event',this)">🎯 Events</button>
+    <button class="map-fb" onclick="setFilt('size',this)">👥 Size</button>
+    <button class="map-fb" onclick="resetView()" style="margin-left:auto">⟲ Reset</button>
+  </div>
+  <div class="map-leg" id="map-legend"></div>
+  <div class="map-wrap">
+    <canvas id="map-canvas" height="520"></canvas>
+    <div style="position:absolute;bottom:10px;right:14px;font-size:11px;color:var(--sub);pointer-events:none">Scroll to zoom · Drag to pan · Drag nodes</div>
+    <div class="tt" id="tooltip" style="display:none"></div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="sec-lbl">Top Insights for Event Planning</div>
+    <div id="insight-bar"></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+/* ═══════════════ THEME ═══════════════ */
+(function(){if(localStorage.getItem('g-theme')==='dark'){document.documentElement.setAttribute('data-dark','');document.addEventListener('DOMContentLoaded',()=>{const b=document.getElementById('theme-btn');if(b)b.textContent='☀️';});}})();
+function toggleTheme(){const d=document.documentElement.hasAttribute('data-dark');const b=document.getElementById('theme-btn');if(d){document.documentElement.removeAttribute('data-dark');b.textContent='🌙';localStorage.setItem('g-theme','light');}else{document.documentElement.setAttribute('data-dark','');b.textContent='☀️';localStorage.setItem('g-theme','dark');}}
+
+/* ═══════════════ SPLASH ═══════════════ */
+(function(){
+  const c=document.getElementById('splash-canvas'),ctx=c.getContext('2d');
+  let W,H,pts=[];
+  function resize(){W=c.width=window.innerWidth;H=c.height=window.innerHeight;}
+  resize();window.addEventListener('resize',resize);
+  for(let i=0;i<65;i++)pts.push({x:Math.random()*screen.width,y:Math.random()*screen.height,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*2+.7,o:Math.random()*.5+.2});
+  (function draw(){
+    ctx.clearRect(0,0,W,H);
+    for(let i=0;i<pts.length;i++){
+      for(let j=i+1;j<pts.length;j++){const d=Math.hypot(pts[i].x-pts[j].x,pts[i].y-pts[j].y);if(d<125){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle=`rgba(129,140,248,${(1-d/125)*.12})`;ctx.lineWidth=.8;ctx.stroke();}}
+      const p=pts[i];ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(129,140,248,${p.o})`;ctx.fill();
+      p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>W)p.vx*=-1;if(p.y<0||p.y>H)p.vy*=-1;
+    }
+    requestAnimationFrame(draw);
+  })();
+  setTimeout(dismissSplash,2800);
+})();
+function dismissSplash(){const s=document.getElementById('splash');s.classList.add('out');setTimeout(()=>s.style.display='none',900);}
+
+/* ═══════════════ DATA ═══════════════ */
+const BLUE='#4f46e5';
+const INT_CATS={time:'Time Preference',energy:'Energizers',event:'Event Types',size:'Group Size'};
+const INT_CAT_COLORS={time:'#fbbf24',energy:'#34d399',event:'#60a5fa',size:'#a78bfa'};
+const INT_NODES=[
+  {id:'t-am',label:'☀️ Morning',cat:'time',color:'#fbbf24',r:20},{id:'t-lu',label:'🌮 Lunch',cat:'time',color:'#f97316',r:20},
+  {id:'t-pm',label:'☕ Afternoon',cat:'time',color:'#fb923c',r:20},{id:'t-ev',label:'🌙 Evening',cat:'time',color:'#a78bfa',r:20},
+  {id:'e-wins',label:'🏆 Team Wins',cat:'energy',color:'#34d399',r:18},{id:'e-learn',label:'🧠 Learning',cat:'energy',color:'#6ee7b7',r:18},
+  {id:'e-cre',label:'🎨 Creative',cat:'energy',color:'#67e8f9',r:18},{id:'e-col',label:'🤝 Collab',cat:'energy',color:'#38bdf8',r:18},
+  {id:'e-com',label:'🌍 Community',cat:'energy',color:'#22d3ee',r:18},{id:'e-rec',label:'⭐ Recognition',cat:'energy',color:'#fbbf24',r:18},
+  {id:'e-inn',label:'💡 Innovation',cat:'energy',color:'#86efac',r:18},{id:'e-men',label:'🤲 Mentorship',cat:'energy',color:'#7dd3fc',r:18},
+  {id:'ev-gm',label:'🎮 Games',cat:'event',color:'#60a5fa',r:18},{id:'ev-ws',label:'📚 Workshops',cat:'event',color:'#818cf8',r:18},
+  {id:'ev-vo',label:'🤲 Volunteer',cat:'event',color:'#34d399',r:18},{id:'ev-fd',label:'🍕 Food Social',cat:'event',color:'#f97316',r:18},
+  {id:'ev-cr',label:'✂️ Creative',cat:'event',color:'#f472b6',r:18},{id:'ev-ft',label:'💪 Fitness',cat:'event',color:'#fb7185',r:18},
+  {id:'ev-rg',label:'🏅 Recognition',cat:'event',color:'#fbbf24',r:18},{id:'ev-hh',label:'🥂 Happy Hour',cat:'event',color:'#fb923c',r:18},
+  {id:'s-sm',label:'👤 Small',cat:'size',color:'#7dd3fc',r:16},{id:'s-md',label:'👥 Medium',cat:'size',color:'#60a5fa',r:16},{id:'s-lg',label:'🏢 Large',cat:'size',color:'#818cf8',r:16},
+];
+const TIME_MAP={morning:'t-am',lunch:'t-lu',afternoon:'t-pm',evening:'t-ev'};
+const ENERGY_MAP={'Team wins':'e-wins','Learning':'e-learn','Creative projects':'e-cre','Collaboration':'e-col','Community':'e-com','Recognition':'e-rec','Innovation':'e-inn','Mentorship':'e-men'};
+const EVENT_MAP={'Games & Trivia':'ev-gm','Workshops & Learning':'ev-ws','Volunteer / Community':'ev-vo','Food & Social':'ev-fd','Creative / Craft':'ev-cr','Fitness / Active':'ev-ft','Recognition Ceremonies':'ev-rg','Happy Hours':'ev-hh'};
+const SIZE_MAP={small:'s-sm',medium:'s-md',large:'s-lg'};
+function getMemberLinks(m){const l=[];if(m.time_pref&&TIME_MAP[m.time_pref])l.push(TIME_MAP[m.time_pref]);(m.energizers||[]).forEach(e=>{if(ENERGY_MAP[e])l.push(ENERGY_MAP[e]);});(m.event_types||[]).forEach(e=>{if(EVENT_MAP[e])l.push(EVENT_MAP[e]);});if(m.group_size&&SIZE_MAP[m.group_size])l.push(SIZE_MAP[m.group_size]);return[...new Set(l)];}
+
+const EVENTS_TEAM=[
+  {name:'Alex Rivera',emoji:'🙋🏽',bio:'Alex leads the Employee Engagement & Culture team, building experiences that connect people to their work and each other.',contact:'#'},
+  {name:'Jordan Kim',emoji:'👩🏻‍💼',bio:'Jordan coordinates events across all offices, making sure every team celebration actually feels like one.',contact:'#'},
+  {name:'Sam Okonkwo',emoji:'👨🏾‍🎤',bio:'Sam handles community partnerships and volunteer programs, turning good intentions into meaningful days.',contact:'#'},
+  {name:'Maya Patel',emoji:'👩🏽‍🎨',bio:'Maya leads creative direction for all team events — the reason things look as good as they feel.',contact:'#'},
+  {name:'Chris Williams',emoji:'🧑🏼‍💻',bio:'Chris runs the data behind the events: who loved what, what flopped, and what to do next quarter.',contact:'#'},
+  {name:'Taylor Nguyen',emoji:'🧕🏻',bio:'Taylor is on rotation as an Events & Culture Coordinator, based in Austin.',contact:'#'},
+];
+
+const MOCK_MEMBERS=[
+  {id:'m1',full_name:'Alex Rivera',org_team:'People & Culture',city:'New York',work_arrangement:'hybrid',time_pref:'afternoon',energizers:['Team wins','Creative projects','Community'],event_types:['Games & Trivia','Food & Social','Recognition Ceremonies'],group_size:'medium',dietary:['No restrictions']},
+  {id:'m2',full_name:'Jordan Kim',org_team:'People & Culture',city:'Seattle',work_arrangement:'hybrid',time_pref:'morning',energizers:['Team wins','Collaboration','Recognition'],event_types:['Recognition Ceremonies','Food & Social','Workshops & Learning'],group_size:'large',dietary:['Vegetarian']},
+  {id:'m3',full_name:'Marcus Chen',org_team:'Engineering',city:'Austin',work_arrangement:'remote',time_pref:'lunch',energizers:['Learning','Collaboration','Innovation'],event_types:['Workshops & Learning','Food & Social','Games & Trivia'],group_size:'medium',dietary:['No restrictions']},
+  {id:'m4',full_name:'Amara Osei',org_team:'Design',city:'New York',work_arrangement:'hybrid',time_pref:'evening',energizers:['Creative projects','Recognition','Community'],event_types:['Creative / Craft','Happy Hours','Food & Social'],group_size:'small',dietary:['Halal']},
+  {id:'m5',full_name:'Jordan Lee',org_team:'Engineering',city:'Seattle',work_arrangement:'remote',time_pref:'afternoon',energizers:['Innovation','Learning','Collaboration'],event_types:['Workshops & Learning','Games & Trivia','Fitness / Active'],group_size:'medium',dietary:['Gluten-free']},
+  {id:'m6',full_name:'Sofia Reyes',org_team:'Operations',city:'Austin',work_arrangement:'hybrid',time_pref:'morning',energizers:['Mentorship','Collaboration','Community'],event_types:['Volunteer / Community','Food & Social','Recognition Ceremonies'],group_size:'medium',dietary:['No restrictions']},
+  {id:'m7',full_name:'Tariq Williams',org_team:'Engineering',city:'Chicago',work_arrangement:'onsite',time_pref:'lunch',energizers:['Innovation','Team wins'],event_types:['Games & Trivia','Food & Social'],group_size:'large',dietary:['No restrictions']},
+  {id:'m8',full_name:'Elena Kovacs',org_team:'Product',city:'San Francisco',work_arrangement:'remote',time_pref:'afternoon',energizers:['Creative projects','Recognition','Learning'],event_types:['Creative / Craft','Workshops & Learning','Happy Hours'],group_size:'small',dietary:['Vegan']},
+  {id:'m9',full_name:'DeShawn Parker',org_team:'Analytics',city:'Atlanta',work_arrangement:'remote',time_pref:'morning',energizers:['Learning','Innovation','Collaboration'],event_types:['Workshops & Learning','Food & Social','Games & Trivia'],group_size:'medium',dietary:['No restrictions']},
+  {id:'m10',full_name:'Yuki Tanaka',org_team:'Engineering',city:'San Francisco',work_arrangement:'hybrid',time_pref:'evening',energizers:['Innovation','Creative projects','Team wins'],event_types:['Happy Hours','Games & Trivia','Fitness / Active'],group_size:'medium',dietary:['No restrictions']},
+  {id:'m11',full_name:'Camille Dupont',org_team:'Marketing',city:'Paris',work_arrangement:'remote',time_pref:'morning',energizers:['Community','Mentorship','Collaboration'],event_types:['Volunteer / Community','Food & Social','Creative / Craft'],group_size:'small',dietary:['No restrictions']},
+  {id:'m12',full_name:'Ravi Krishnan',org_team:'Analytics',city:'Chicago',work_arrangement:'hybrid',time_pref:'afternoon',energizers:['Learning','Innovation','Collaboration'],event_types:['Workshops & Learning','Games & Trivia'],group_size:'large',dietary:['Vegetarian']},
+];
+
+const MOCK_EVENTS=[
+  {id:1,title:"Team Trivia Night",category:"celebration",goal:["fun"],format:"in-person",budget:"low",headcount:"11-30",leadtime:"thisweek",timeslot:"evening",energy:"fun",context:"established",duration:"2hr",description:"Competitive trivia with themed rounds. Teams of 4, prizes for winners, food included.",checklist:["Book or reserve room","Set up AV","Prepare 5 themed rounds","Order food","Send calendar invite"],webex:null},
+  {id:2,title:"Virtual Game Tournament",category:"celebration",goal:["fun"],format:"virtual",budget:"low",headcount:"11-30",leadtime:"today",timeslot:"afternoon",energy:"fun",context:"any",duration:"2hr",description:"No downloads needed — run Jackbox or Gartic Phone over video. Bracket-style, silly prizes.",checklist:["Purchase Jackbox if needed","Create bracket","Set up video meeting room","Share link 1 day before"],webex:"Share your screen and enable 'Allow participants to share.' Set Jackbox to Stream Mode."},
+  {id:3,title:"Milestone Brunch",category:"celebration",goal:["appreciated","belong"],format:"in-person",budget:"mid",headcount:"1-10",leadtime:"thisweek",timeslot:"morning",energy:"chill",context:"established",duration:"2hr",description:"A proper sit-down brunch to mark a milestone — no agenda, just food and good conversation.",checklist:["Reserve restaurant","Collect dietary needs first","Prepare short toast","Order a small cake"],webex:null},
+  {id:4,title:"Hybrid Happy Hour",category:"celebration",goal:["fun","belong"],format:"hybrid",budget:"mid",headcount:"11-30",leadtime:"thisweek",timeslot:"evening",energy:"chill",context:"established",duration:"2hr",description:"In-person folks gather; remote folks join on video with a mailed snack kit or delivery credit.",checklist:["Set up hybrid video room","Mail snack kits or send delivery credits","Reserve in-person space","Plan 2-3 icebreakers"],webex:"Appoint a remote-room moderator so no one gets left out of the conversation."},
+  {id:5,title:"Buddy Coffee Roulette",category:"onboarding",goal:["belong","fun"],format:"virtual",budget:"none",headcount:"1-10",leadtime:"today",timeslot:"morning",energy:"chill",context:"new",duration:"30min",description:"Pair the new hire with a different teammate each week for 30-min video coffees. Zero budget.",checklist:["Create 4-week pairing schedule","Send intro email to buddies","Book video holds","Share new hire's profile"],webex:null},
+  {id:6,title:"New Hire Welcome Lunch",category:"onboarding",goal:["belong","appreciated"],format:"in-person",budget:"mid",headcount:"1-10",leadtime:"thisweek",timeslot:"lunch",energy:"chill",context:"welcoming",duration:"2hr",description:"A relaxed welcome lunch — no agenda, no slides. Just food and genuine conversation.",checklist:["Pick great local restaurant","Collect dietary restrictions first","Manager arrives 5 min early","No laptops rule"],webex:null},
+  {id:7,title:"Peer Shoutout Board",category:"recognition",goal:["appreciated"],format:"virtual",budget:"none",headcount:"any",leadtime:"today",timeslot:"any",energy:"chill",context:"any",duration:"ongoing",description:"A shared doc where anyone drops a shoutout anytime. Post top three to Slack every Friday.",checklist:["Create Notion/doc template","Set Friday cadence","Designate weekly curator","Post to team channel"],webex:null},
+  {id:8,title:"Recognition Video Moment",category:"recognition",goal:["appreciated","belong"],format:"virtual",budget:"none",headcount:"11-30",leadtime:"today",timeslot:"any",energy:"chill",context:"any",duration:"30min",description:"A 10-min video ceremony inside an existing meeting. One person spotlighted, impact shared live.",checklist:["Coordinate with meeting host","Prep 2-min impact statement","Collect 3 peer quotes","Prepare slide with photo"],webex:null},
+  {id:9,title:"Mini Hackathon (4-Hour Sprint)",category:"collaboration",goal:["energized","smarter"],format:"in-person",budget:"mid",headcount:"11-30",leadtime:"2weeks",timeslot:"afternoon",energy:"highEnergy",context:"cross",duration:"half-day",description:"4-hour sprint, cross-functional pods, one real problem. Ends with 5-min demos and a vote.",checklist:["Define challenge statement","Form cross-functional pods","Book space with whiteboards","Arrange lunch/snacks"],webex:null},
+  {id:10,title:"Virtual Workshop",category:"collaboration",goal:["smarter","energized"],format:"virtual",budget:"none",headcount:"11-30",leadtime:"thisweek",timeslot:"afternoon",energy:"fun",context:"cross",duration:"2hr",description:"2-hour facilitated video session with breakout rooms for cross-team problem solving.",checklist:["Prepare agenda","Set up breakout rooms","Create shared doc for notes","Send recording after"],webex:"Pre-configure breakout rooms before the session to avoid chaos at the start."},
+  {id:11,title:"Culture Potluck & Story Share",category:"community",goal:["belong","fun"],format:"in-person",budget:"none",headcount:"11-30",leadtime:"2weeks",timeslot:"lunch",energy:"chill",context:"any",duration:"2hr",description:"Everyone brings a dish from their background and a 2-minute story. Zero budget, huge impact.",checklist:["Send sign-up sheet","Reserve space","Provide plates/utensils","Designate MC"],webex:null},
+  {id:12,title:"Community Service Half-Day",category:"community",goal:["belong","energized"],format:"in-person",budget:"mid",headcount:"11-30",leadtime:"month",timeslot:"morning",energy:"highEnergy",context:"established",duration:"half-day",description:"A half-day volunteer experience with a local nonprofit. Strong for cohesion and culture.",checklist:["Identify nonprofit partner","Coordinate headcount + accessibility","Arrange transportation","Send pre-read on mission"],webex:null},
+];
+
+const FAQS=[
+  {q:"Which Claude plan do I need?",a:"The free tier works for getting started. Claude Pro ($20/mo) gives you more capacity, access to stronger models, and larger context windows — worth it for regular planning work."},
+  {q:"Can I share my Project with teammates?",a:"Yes — sharing is limited on Free but available on Pro and Team plans. Go into your Project settings and invite teammates by email. They'll inherit your project instructions automatically."},
+  {q:"How is Claude different from ChatGPT?",a:"Both are capable AI assistants. Claude is known for following instructions carefully, longer context windows, and being particularly good at nuanced writing. Try both — Projects in Claude are a standout feature for this use case."},
+  {q:"The plan Claude generates is too generic",a:"Add more context to your Project instructions — your team size, typical event types, budget constraints, culture norms. The more specific the instructions, the more specific the output. Try uploading a past event plan as a reference file."},
+  {q:"Can Claude remember my preferences across sessions?",a:"Yes — that's the whole point of Projects. Your instructions persist. You can also upload reference files that Claude reads in every conversation. It won't forget your team's style."},
+  {q:"Is there a limit to how long conversations can be?",a:"Yes — the context window. For event planning, you'll rarely hit it in a single session. If you do, start a new conversation inside your Project (instructions carry over). Keep each conversation focused on one event."},
+];
+
+const TEAM_DEPTS=['People & Culture','Engineering','Design','Product','Marketing','Operations','Analytics','Finance','Legal','Customer Success','Sales','Platform & Infrastructure'];
+const HN={'1-10':8,'11-30':20,'31-100':60,'100+':140};
+
+function scoreEvent(e,f){let s=0;if(f.category&&e.category===f.category)s+=12;if(f.format&&(e.format===f.format||e.format==='any'))s+=10;if(f.budget&&e.budget===f.budget)s+=8;if(f.budget==='none'&&e.budget==='none')s+=15;if(f.headcount&&(e.headcount===f.headcount||e.headcount==='any'))s+=7;if(f.feeling&&e.goal&&e.goal.includes(f.feeling))s+=8;if(f.energy&&e.energy===f.energy)s+=6;if(f.context&&(e.context===f.context||e.context==='any'))s+=5;if(f.budget==='none'&&e.budget!=='none')s-=10;return Math.max(0,s);}
+
+const api={
+  getEvents(f){return new Promise(r=>setTimeout(()=>{let res=MOCK_EVENTS.map(e=>({...e,score:scoreEvent(e,f)})).sort((a,b)=>b.score-a.score).filter(e=>e.score>0);r(res.length?res:MOCK_EVENTS.slice(0,3));},700));},
+  getMembers(){return new Promise(r=>setTimeout(()=>{const s=JSON.parse(localStorage.getItem('g_mbr')||'[]');r([...MOCK_MEMBERS,...s]);},300));},
+  submitMember(d){return new Promise(r=>setTimeout(()=>{const s=JSON.parse(localStorage.getItem('g_mbr')||'[]');s.push({...d,id:'u'+Date.now()});localStorage.setItem('g_mbr',JSON.stringify(s));r({success:true});},900));}
+};
+
+function showTab(id,btn){
+  ['portal','edu','intake','mindmap'].forEach(t=>document.getElementById('tab-'+t).style.display=t===id?'':'none');
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  if(id==='mindmap')initMap();
+}
+function jumpTo(id){const el=document.getElementById(id);if(!el)return;const hH=(document.querySelector('.hdr')||{offsetHeight:110}).offsetHeight;window.scrollTo({top:el.getBoundingClientRect().top+window.scrollY-hH-20,behavior:'smooth'});}
+
+/* ═══════ EVENT PORTAL ═══════ */
+const QUESTIONS=[
+  {id:'category',title:"What kind of event are you planning?",sub:"This shapes everything.",opts:[
+    {v:'celebration',icon:'🎉',l:'Team Celebration',d:'Milestones, wins, and appreciation'},
+    {v:'onboarding',icon:'🌱',l:'Onboarding / Welcome',d:'Bringing someone new into the fold'},
+    {v:'recognition',icon:'⭐',l:'Recognition & Appreciation',d:'Spotlighting someone who deserves it'},
+    {v:'collaboration',icon:'🤝',l:'Cross-Team Collaboration',d:'Hackathons, workshops, syncs'},
+    {v:'community',icon:'🌍',l:'Culture & Community',d:'Values, identity, belonging'},
+  ]},
+  {id:'feeling',title:"What should people feel when it's over?",sub:"Pick your target emotional outcome.",opts:[
+    {v:'energized',icon:'💪',l:'Fired up & energized',d:'Leaving with momentum'},
+    {v:'appreciated',icon:'🤗',l:'Seen & appreciated',d:'Feeling genuinely recognized'},
+    {v:'smarter',icon:'🧠',l:'Smarter & more connected',d:'Walking away with real insight'},
+    {v:'fun',icon:'😄',l:'Like they had actual fun',d:'Laughed, relaxed, no agenda'},
+    {v:'belong',icon:'🫂',l:'Like they belong here',d:'Connected to team and culture'},
+  ]},
+  {id:'format',title:"How are you meeting?",sub:"This sets the logistics foundation.",opts:[
+    {v:'in-person',icon:'📍',l:'All in person',d:'Same space, face-to-face'},
+    {v:'virtual',icon:'💻',l:'Virtual — via video call',d:'Everyone joins remotely'},
+    {v:'hybrid',icon:'🔀',l:'Hybrid — room + video',d:'Some in-room, some remote'},
+  ]},
+  {id:'headcount',title:"How many people are coming?",sub:"Affects venues and your per-person cost below.",opts:[
+    {v:'1-10',icon:'👤',l:'1–10 people',d:'Small, intimate, close-knit'},
+    {v:'11-30',icon:'👥',l:'11–30 people',d:'Mid-size team event'},
+    {v:'31-100',icon:'🏢',l:'31–100 people',d:'All-org or department scale'},
+    {v:'100+',icon:'🏟️',l:'100+ people',d:'All-hands or large event'},
+  ]},
+  {id:'budget',title:"What's the budget situation?",sub:"Per-person estimate based on your headcount.",dynamic:'budget'},
+  {id:'leadtime',title:"How much runway do you have?",sub:"Be real — we'll give you what's actually doable.",opts:[
+    {v:'today',icon:'⚡',l:'Today or tomorrow',d:'Fast-track plan needed'},
+    {v:'thisweek',icon:'📅',l:'A few days this week',d:'Tight but workable'},
+    {v:'2weeks',icon:'🗓️',l:'A couple weeks out',d:'Comfortable planning window'},
+    {v:'month',icon:'🏗️',l:'A month or more',d:'Full runway, make it special'},
+  ]},
+  {id:'timeslot',title:"When is this happening?",sub:"Affects catering, mood, and energy.",opts:[
+    {v:'morning',icon:'☀️',l:'Morning (9–11am)',d:'Fresh, focused'},
+    {v:'lunch',icon:'🌮',l:'Lunchtime (11am–1pm)',d:'Natural break, casual'},
+    {v:'afternoon',icon:'☕',l:'Afternoon (1–4pm)',d:'Post-lunch energy'},
+    {v:'evening',icon:'🌙',l:'Evening / after hours',d:'Social, relaxed'},
+    {v:'allday',icon:'📆',l:'All day or multi-day',d:'Immersive experience'},
+  ]},
+  {id:'context',title:"Who's in the room?",sub:"Group dynamic changes the playbook.",opts:[
+    {v:'new',icon:'🌱',l:'Mostly new people',d:'Folks don\'t know each other yet'},
+    {v:'established',icon:'🧑‍🤝‍🧑',l:'Our tight-knit team',d:'We know each other well'},
+    {v:'cross',icon:'🌐',l:'Cross-functional or mixed',d:'Different groups, some strangers'},
+    {v:'welcoming',icon:'🎁',l:'Welcoming a specific new hire',d:'Intentionally centering one person'},
+  ]},
+  {id:'energy',title:"What energy are you going for?",sub:"This shapes how you structure the time.",opts:[
+    {v:'chill',icon:'🧘',l:'Chill & connective',d:'Low-pressure, easy to be yourself'},
+    {v:'fun',icon:'🎮',l:'Fun & playful',d:'Games, laughs, competition'},
+    {v:'highEnergy',icon:'🚀',l:'High energy & bold',d:'Memorable, out-of-the-ordinary'},
+    {v:'celebratory',icon:'🎊',l:'Celebratory',d:'This is a moment — treat it like one'},
+  ]},
+  {id:'considerations',title:"Anything to plan around?",sub:"Check all that apply.",multi:true,opts:[
+    {v:'none',icon:'✅',l:'Nothing special',d:'Standard event'},
+    {v:'international',icon:'🌍',l:'International team members',d:'Time zones matter'},
+    {v:'accessibility',icon:'♿',l:'Accessibility is a priority',d:'Physical or communication needs'},
+    {v:'dietary',icon:'🥗',l:'Dietary diversity in the group',d:'Restrictions, allergies'},
+    {v:'remote',icon:'💻',l:'Majority remote team',d:'Most folks won\'t be in the same room'},
+  ]},
+];
+
+function getBudgetOpts(hc){const n=HN[hc]||20;const pp=x=>Math.round(x/n);return[
+  {v:'none',icon:'🌿',l:'$0 total — Free',d:'Zero budget, creativity only',per:'$0 per person'},
+  {v:'low',icon:'💚',l:'Under $500 total',d:'Light spend',per:`~$${pp(250)}–$${pp(500)} per person`},
+  {v:'mid',icon:'💛',l:'$500–$2,000 total',d:'Solid budget',per:`~$${pp(500)}–$${pp(2000)} per person`},
+  {v:'high',icon:'🔴',l:'$2,000+ total',d:'Full experience',per:`$${pp(2000)}+ per person`},
+];}
+
+let pStep=0,pAns={},pSel=null;
+function renderStep(){
+  const q=QUESTIONS[pStep],tot=QUESTIONS.length;
+  document.getElementById('progress').style.width=((pStep/tot)*100)+'%';
+  let dots='';for(let i=0;i<tot;i++){const c=i<pStep?'sd':i===pStep?'sa':'sp';dots+=`<div class="sdot ${c}">${i<pStep?'✓':i+1}</div>`;if(i<tot-1)dots+=`<div class="sline" style="background:${i<pStep?'var(--blue)':'var(--border)'}"></div>`;}
+  document.getElementById('step-dots').innerHTML=dots;
+  document.getElementById('step-ctr').textContent=`${pStep+1} of ${tot}`;
+  document.getElementById('btn-back').style.display=pStep>0?'':'none';
+  const nb=document.getElementById('btn-next');nb.textContent=pStep===tot-1?'Generate My Plan →':'Next →';
+  const isM=q.multi,isD=q.dynamic==='budget';
+  const opts=isD?getBudgetOpts(pAns.headcount||'11-30'):q.opts;
+  const cm=pAns[q.id]||[];
+  let html=`<div class="q-title">${q.title}</div><div class="q-sub">${q.sub}</div><div class="opts">`;
+  opts.forEach(o=>{
+    if(isM){const s=cm.includes(o.v);html+=`<div class="opt${s?' sel':''}" onclick="togM('${o.v}',this,${o.v==='none'})"><div class="opt-icon">${o.icon}</div><div style="flex:1"><div class="opt-lbl">${o.l}</div><div class="opt-desc">${o.d}</div></div><div class="opt-radio">${s?'<div class="ri"></div>':''}</div></div>`;}
+    else{const s=pSel===o.v;html+=`<div class="opt${s?' sel':''}" onclick="selO('${o.v}',this)"><div class="opt-icon">${o.icon}</div><div style="flex:1"><div class="opt-lbl">${o.l}</div><div class="opt-desc">${o.d}</div>${o.per?`<div class="opt-per">${o.per}</div>`:''}</div><div class="opt-radio">${s?'<div class="ri"></div>':''}</div></div>`;}
+  });
+  html+=`</div>`;document.getElementById('question-area').innerHTML=html;
+  nb.disabled=isM?(cm.length===0):!pSel;
+}
+function selO(v,el){pSel=v;document.querySelectorAll('.opt').forEach(o=>{o.classList.remove('sel');const r=o.querySelector('.opt-radio');if(r)r.innerHTML='';});el.classList.add('sel');el.querySelector('.opt-radio').innerHTML='<div class="ri"></div>';document.getElementById('btn-next').disabled=false;}
+function togM(v,el,isN){const q=QUESTIONS[pStep];const cur=pAns[q.id]||[];let next=isN?(cur.includes('none')?[]:[v]):(cur.filter(x=>x!=='none').includes(v)?cur.filter(x=>x!==v&&x!=='none'):[...cur.filter(x=>x!=='none'),v]);pAns[q.id]=next;document.querySelectorAll('.opt').forEach(o=>{const m=o.getAttribute('onclick').match(/'([^']+)'/);if(!m)return;const ov=m[1];const s=next.includes(ov);o.classList.toggle('sel',s);const r=o.querySelector('.opt-radio');if(r)r.innerHTML=s?'<div class="ri"></div>':'';});document.getElementById('btn-next').disabled=next.length===0;}
+function nextStep(){const q=QUESTIONS[pStep];if(q.multi){if((pAns[q.id]||[]).length===0)return;}else{if(!pSel)return;pAns[q.id]=pSel;}if(pStep<QUESTIONS.length-1){pStep++;pSel=(!QUESTIONS[pStep].multi&&!QUESTIONS[pStep].dynamic&&pAns[QUESTIONS[pStep].id])||null;renderStep();}else{document.getElementById('questionnaire').innerHTML='<div style="text-align:center;padding:48px;color:var(--sub);font-size:14px">✨ Building your custom plan...</div>';api.getEvents(pAns).then(showResults);}}
+function prevStep(){if(pStep>0){if(!QUESTIONS[pStep].multi&&!QUESTIONS[pStep].dynamic)pAns[QUESTIONS[pStep].id]=undefined;pStep--;pSel=(!QUESTIONS[pStep].multi&&!QUESTIONS[pStep].dynamic&&pAns[QUESTIONS[pStep].id])||null;renderStep();}}
+const FL={energized:'fired up',appreciated:'seen & appreciated',smarter:'smarter & more connected',fun:'like they had actual fun',belong:'like they truly belong'};
+const FMT={'in-person':'in-person','virtual':'virtual','hybrid':'hybrid'};
+const BUD={none:'zero budget',low:'under $500',mid:'$500–$2k',high:'$2k+'};
+function showResults(evs){
+  document.getElementById('questionnaire').style.display='none';
+  const n=HN[pAns.headcount]||20;
+  const BP={none:`$0/person`,low:`~$${Math.round(375/n)}/person`,mid:`~$${Math.round(1250/n)}/person`,high:`$${Math.round(2000/n)}+/person`};
+  let html=`<div class="result-hdr"><div><div class="pg-title" style="font-size:19px">✨ Your Custom Event Plan</div><div style="font-size:13px;color:var(--sub)">${evs.length} option${evs.length!==1?'s':''} ranked for you</div></div><button class="btn btn-o" onclick="resetPortal()">Start Over</button></div>`;
+  html+=`<div class="custom-sum">Here's your plan — a ${pAns.category} event, ${FMT[pAns.format]||pAns.format}, for ${pAns.headcount} people with ${BUD[pAns.budget]||pAns.budget} (${BP[pAns.budget]||''}). Goal: walk away feeling ${FL[pAns.feeling]||pAns.feeling}.</div>`;
+  evs.slice(0,5).forEach((ev,i)=>{
+    const feat=i===0,sw=ev.webex&&pAns.format!=='in-person';
+    const bTag=ev.budget==='none'?'Free':BP[ev.budget]||ev.budget;
+    html+=`<div class="card${feat?' card-feat':''} fade" style="margin-bottom:14px">${feat?'<div class="badge-best">⭐ Top Pick</div>':''}
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px">
+        <div style="flex:1"><div style="font-size:16px;font-weight:700;margin-bottom:8px;color:var(--text)">${ev.title}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"><span style="background:var(--tag);color:var(--sub);padding:3px 10px;border-radius:20px;font-size:11px">📍 ${ev.format}</span><span style="background:var(--tag);color:var(--sub);padding:3px 10px;border-radius:20px;font-size:11px">💰 ${bTag}</span><span style="background:var(--tag);color:var(--sub);padding:3px 10px;border-radius:20px;font-size:11px">⏱ ${ev.duration}</span></div>
+          <p style="font-size:13px;line-height:1.6;color:var(--sec)">${ev.description}</p>
+          ${sw?`<div class="webex-tip">💡 <strong>Video tip:</strong> ${ev.webex}</div>`:''}
+        </div>
+        <button class="btn btn-g" style="flex-shrink:0;font-size:12px" onclick="togCL(this,'cl-${ev.id}')">▼ Checklist</button>
+      </div>
+      <div id="cl-${ev.id}" style="display:none"><div class="sep"></div><div class="sec-lbl">LOGISTICS CHECKLIST</div>
+        ${ev.checklist.map(it=>`<div class="chk-item" onclick="togChk(this)"><div class="chk-box"><span style="color:#fff;font-size:10px;display:none">✓</span></div><div class="chk-lbl">${it}</div></div>`).join('')}
+        <div style="margin-top:12px"><button class="btn btn-p" style="font-size:12px">📤 Save Plan</button></div>
+      </div>
+    </div>`;
+  });
+  const ra=document.getElementById('results-area');ra.innerHTML=html;ra.style.display='';
+}
+function togCL(btn,id){const el=document.getElementById(id);const o=el.style.display!=='none';el.style.display=o?'none':'';btn.textContent=o?'▼ Checklist':'▲ Checklist';}
+function togChk(row){const b=row.querySelector('.chk-box'),l=row.querySelector('.chk-lbl'),t=b.querySelector('span');const on=b.classList.toggle('on');t.style.display=on?'':'none';l.classList.toggle('done',on);}
+function resetPortal(){pStep=0;pAns={};pSel=null;const q=document.getElementById('questionnaire');q.innerHTML=`<div class="prog"><div class="prog-f" id="progress" style="width:0%"></div></div><div class="step-row" id="step-dots"></div><div id="question-area"></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:22px"><button class="btn btn-g" id="btn-back" onclick="prevStep()" style="display:none">← Back</button><div style="margin-left:auto;display:flex;align-items:center;gap:10px"><span id="step-ctr" style="font-size:12px;color:var(--sub)"></span><button class="btn btn-p" id="btn-next" onclick="nextStep()" disabled>Next →</button></div></div>`;q.style.display='';document.getElementById('results-area').style.display='none';renderStep();}
+renderStep();
+
+/* ═══════ AGENT GUIDE ═══════ */
+const faqEl=document.getElementById('faq');
+FAQS.forEach((f,i)=>{faqEl.innerHTML+=`<div class="acc-item"><div class="acc-hdr" onclick="togAcc(${i})"><span style="color:var(--text)">${f.q}</span><span class="acc-arrow" id="arr-${i}">▼</span></div><div class="acc-body" id="acc-${i}"><p>${f.a}</p></div></div>`;});
+function togAcc(i){const b=document.getElementById('acc-'+i),a=document.getElementById('arr-'+i);const o=b.classList.toggle('open');a.textContent=o?'▲':'▼';}
+function copyPrompt(){navigator.clipboard.writeText(document.getElementById('prompt-text').textContent).then(()=>{const b=document.getElementById('copy-btn');b.textContent='✓ Copied!';b.classList.add('ok');setTimeout(()=>{b.textContent='📋 Copy';b.classList.remove('ok');},2000);});}
+
+/* ═══════ JOIN THE TEAM ═══════ */
+const ENERGIZER_OPTS=['Team wins','Learning','Creative projects','Recognition','Mentorship','Collaboration','Community','Innovation','Autonomy','Social connection','Friendly competition','Making something beautiful'];
+const EVENT_TYPE_OPTS=['Games & Trivia','Workshops & Learning','Volunteer / Community','Food & Social','Creative / Craft','Fitness / Active','Recognition Ceremonies','Happy Hours','Cultural Celebrations','Team Challenges'];
+const DIETARY_OPTS=['No restrictions','Vegetarian','Vegan','Gluten-free','Halal','Kosher','Nut allergy','Dairy-free','Other'];
+const QZ=[
+  {id:'name',flavor:"Let's start with the basics 👋",title:"What's your name?",sub:"This is how your events team finds you and remembers your birthday.",type:'text2',fields:[{id:'full_name',label:'Your full name',ph:'Alex Rivera'},{id:'ldap',label:'Your username / ID',ph:'alexrivera'}]},
+  {id:'team',flavor:"Where do you belong? 🗺️",title:"Which team are you on?",sub:"This is how you'll appear on the What We Love map.",type:'dept'},
+  {id:'location',flavor:"Where in the world? 🌍",title:"Where are you based?",sub:"Helps scope in-person events and make sure remote folks are always included.",type:'location'},
+  {id:'birthday',flavor:"This one matters 🎂",title:"When's your birthday?",sub:"Your events team celebrates you. Sharing this means they won't miss it.",type:'birthday'},
+  {id:'energizers',flavor:"Here's the good stuff ⚡",title:"What gives you energy at work?",sub:"Select everything that resonates — used to match you to events you'll love.",type:'multi',opts:ENERGIZER_OPTS,field:'energizers'},
+  {id:'time_pref',flavor:"Timing is everything ⏰",title:"Best time for team events?",sub:"Your answer directly shapes when events get scheduled.",type:'cards',field:'time_pref',opts:[
+    {v:'morning',icon:'☀️',l:'Morning',d:'9–11am — fresh and focused'},
+    {v:'lunch',icon:'🌮',l:'Lunch',d:'11am–1pm — casual and easy'},
+    {v:'afternoon',icon:'☕',l:'Afternoon',d:'1–4pm — mid-day energy'},
+    {v:'evening',icon:'🌙',l:'Evening',d:'After 5pm — off the clock'},
+    {v:'any',icon:'🤷',l:'No preference',d:'Any time works for me'},
+  ]},
+  {id:'event_types',flavor:"Dream event? 🎯",title:"What's your ideal team event?",sub:"Pick all the types that genuinely excite you.",type:'multi',opts:EVENT_TYPE_OPTS,field:'event_types'},
+  {id:'group_size',flavor:"Big group or small circle? 👥",title:"What size group is your sweet spot?",sub:"No wrong answer — events happen at every scale.",type:'cards',field:'group_size',opts:[
+    {v:'small',icon:'👤',l:'Small (1–10)',d:'Intimate — you know everyone\'s name'},
+    {v:'medium',icon:'👥',l:'Medium (11–30)',d:'The sweet spot — enough energy'},
+    {v:'large',icon:'🏢',l:'Large (30+)',d:'The bigger the better'},
+    {v:'any',icon:'✨',l:'No preference',d:'I\'m good at any size'},
+  ]},
+  {id:'dietary',flavor:"Let's talk food 🥗",title:"Any dietary needs?",sub:"This gets its own step because it genuinely changes what gets planned.",type:'multi',opts:DIETARY_OPTS,field:'dietary'},
+  {id:'open',flavor:"Last one 🎤",title:"Anything else your events team should know?",sub:"Open channel — say hi, share your vibe, tell us what makes you feel celebrated.",type:'textarea',fields:[{id:'open_notes',label:'Your note (optional)',ph:"Open channel — share anything. We actually read these."}]},
+];
+
+let qStep=0,qData={energizers:[],event_types:[],dietary:[]},qArr='';
+
+function togTeam(){const b=document.getElementById('team-body'),a=document.getElementById('team-arrow');const o=b.style.display==='none';b.style.display=o?'':'none';a.textContent=o?'▲ Hide team':'▼ Show team';if(o&&!document.getElementById('events-team-grid').innerHTML.trim())renderEventsTeam();}
+function renderEventsTeam(){document.getElementById('events-team-grid').innerHTML=EVENTS_TEAM.map(m=>`<div class="team-card"><span class="team-emoji">${m.emoji}</span><div class="team-name">${m.name}</div><div class="team-bio">${m.bio}</div><a href="${m.contact}" class="team-contact">Contact me</a></div>`).join('');}
+
+function renderQuiz(){
+  const s=QZ[qStep],tot=QZ.length;
+  document.getElementById('quiz-progress').style.width=((qStep/tot)*100)+'%';
+  let dots='';for(let i=0;i<tot;i++){const c=i<qStep?'sd':i===qStep?'sa':'sp';dots+=`<div class="sdot ${c}">${i<qStep?'✓':i+1}</div>`;if(i<tot-1)dots+=`<div class="sline" style="background:${i<qStep?'var(--blue)':'var(--border)'}"></div>`;}
+  document.getElementById('quiz-dots').innerHTML=dots;
+  document.getElementById('quiz-ctr').textContent=`${qStep+1} of ${tot}`;
+  document.getElementById('quiz-back').style.display=qStep>0?'':'none';
+  const nb=document.getElementById('quiz-next');nb.textContent=qStep===tot-1?'Submit 🎉':'Next →';
+  let html=`<div class="qz-flavor">${s.flavor}</div><div class="qz-head">${s.title}</div><div class="qz-sub">${s.sub}</div>`;
+  if(s.type==='text2'){html+=`<div class="form-g form-2">`;s.fields.forEach(f=>{const v=qData[f.id]||'';html+=`<div><label class="lbl">${f.label}</label><input type="text" id="qi-${f.id}" value="${v}" placeholder="${f.ph}" oninput="qSD('${f.id}',this.value);chkQN()"></div>`;});html+=`</div>`;setTimeout(()=>{document.querySelector('#qi-'+s.fields[0].id)?.focus();chkQN();},50);}
+  else if(s.type==='dept'){html+=`<select id="qi-dept" onchange="qSD('org_team',this.value);chkQN()"><option value="">Select your department...</option>${TEAM_DEPTS.map(t=>`<option value="${t}" ${qData.org_team===t?'selected':''}>${t}</option>`).join('')}</select>`;html+=`<div style="margin-top:14px"><label class="lbl">Sub-team or function (optional)</label><input type="text" id="qi-subteam" value="${qData.subteam||''}" placeholder="e.g. Frontend, Analytics, People Ops" oninput="qSD('subteam',this.value)"></div>`;setTimeout(chkQN,50);}
+  else if(s.type==='location'){html+=`<div class="form-g" style="margin-bottom:14px"><div><label class="lbl">City / Location</label><input type="text" id="qi-city" value="${qData.city||''}" placeholder="New York, Austin, Remote..." oninput="qSD('city',this.value);chkQN()"></div></div><div><label class="lbl">How do you show up?</label><div class="r-grp" id="arr-g">`;['Onsite','Hybrid','Remote'].forEach(a=>{const s=qArr===a.toLowerCase();html+=`<div class="rbtn${s?' sel':''}" onclick="selQA('${a.toLowerCase()}',this)">${a}</div>`;});html+=`</div></div>`;setTimeout(()=>{document.getElementById('qi-city')?.focus();chkQN();},50);}
+  else if(s.type==='birthday'){html+=`<div><label class="lbl">Birthday</label><input type="date" id="qi-birthday" value="${qData.birthday||''}" oninput="qSD('birthday',this.value)"></div><div class="toggle-row" style="margin-top:12px"><div class="toggle-switch${qData.uses_appleversary?' on':''}" id="av-t" onclick="togAV()"><div class="toggle-knob"></div></div><span style="font-size:13px;color:var(--sec)">Use my <strong>work anniversary</strong> as my celebration day instead</span></div><div style="margin-top:10px;font-size:12px;color:var(--sub)">Both are optional — sharing either means EEC can celebrate you on your special day.</div>`;setTimeout(()=>{nb.disabled=false;},50);}
+  else if(s.type==='multi'){const cur=qData[s.field]||[];html+=`<div class="chips">${s.opts.map(o=>`<div class="chip${cur.includes(o)?' sel':''}" onclick="togQC('${s.field}','${o.replace(/'/g,"\\'")}',this)">${o}</div>`).join('')}</div>`;setTimeout(()=>{nb.disabled=(qData[s.field]||[]).length===0;},50);}
+  else if(s.type==='cards'){const cur=qData[s.field];html+=`<div class="opts">${s.opts.map(o=>{const sel=cur===o.v;return`<div class="opt${sel?' sel':''}" onclick="selQCard('${s.field}','${o.v}',this)"><div class="opt-icon">${o.icon}</div><div style="flex:1"><div class="opt-lbl">${o.l}</div><div class="opt-desc">${o.d}</div></div><div class="opt-radio">${sel?'<div class="ri"></div>':''}</div></div>`;}).join('')}</div>`;setTimeout(()=>{nb.disabled=!cur;},50);}
+  else if(s.type==='textarea'){s.fields.forEach(f=>{const v=qData[f.id]||'';html+=`<div style="margin-bottom:12px"><label class="lbl">${f.label}</label><textarea id="qi-${f.id}" placeholder="${f.ph}" oninput="qSD('${f.id}',this.value)">${v}</textarea></div>`;});setTimeout(()=>{document.querySelector('[id^=qi-]')?.focus();nb.disabled=false;},50);}
+  document.getElementById('quiz-area').innerHTML=html;
+}
+function qSD(k,v){qData[k]=v;}
+function chkQN(){const s=QZ[qStep];let ok=false;if(s.type==='text2')ok=s.fields.every(f=>(document.getElementById('qi-'+f.id)||{}).value?.trim()||qData[f.id]?.trim());else if(s.type==='dept')ok=!!qData.org_team;else if(s.type==='location')ok=!!(qArr&&((document.getElementById('qi-city')||{}).value||'').trim());else ok=true;document.getElementById('quiz-next').disabled=!ok;}
+function selQA(v,el){qArr=v;qData.work_arrangement=v;document.querySelectorAll('#arr-g .rbtn').forEach(b=>b.classList.remove('sel'));el.classList.add('sel');chkQN();}
+function togQC(field,v,el){const cur=qData[field]||[];if(cur.includes(v))qData[field]=cur.filter(x=>x!==v);else qData[field]=[...cur,v];el.classList.toggle('sel',qData[field].includes(v));document.getElementById('quiz-next').disabled=(qData[field]||[]).length===0;}
+function selQCard(field,v,el){qData[field]=v;document.querySelectorAll('#quiz-area .opt').forEach(o=>{o.classList.remove('sel');const r=o.querySelector('.opt-radio');if(r)r.innerHTML='';});el.classList.add('sel');el.querySelector('.opt-radio').innerHTML='<div class="ri"></div>';document.getElementById('quiz-next').disabled=false;}
+function togAV(){qData.uses_appleversary=!qData.uses_appleversary;document.getElementById('av-t').classList.toggle('on',!!qData.uses_appleversary);}
+function nextQuiz(){if(qStep<QZ.length-1){qStep++;renderQuiz();}else{submitQuiz();}}
+function prevQuiz(){if(qStep>0){qStep--;renderQuiz();}}
+function submitQuiz(){
+  const nb=document.getElementById('quiz-next');nb.disabled=true;nb.textContent='⏳ Submitting...';
+  api.submitMember({...qData}).then(()=>{
+    document.getElementById('quiz-card').style.display='none';
+    const name=(qData.full_name||'You').split(' ')[0];
+    const tags=[...(qData.energizers||[]).slice(0,3),...(qData.event_types||[]).slice(0,2)];
+    document.getElementById('quiz-success').innerHTML=`
+      <div class="profile-card fade"><h3>Welcome, ${name}! 🎉</h3><p>${qData.org_team||'Your team'} · ${qData.city||'Remote'}</p><div class="profile-tags">${tags.map(t=>`<div class="p-tag">${t}</div>`).join('')}</div></div>
+      <div class="card" style="text-align:center;padding:32px"><div style="font-size:40px;margin-bottom:12px">💌</div><div style="font-size:17px;font-weight:700;margin-bottom:8px;color:var(--text)">Your events team has your profile</div><p style="font-size:14px;color:var(--sub);margin-bottom:20px">They'll use this to plan events you'll actually love.</p><button class="btn btn-p" onclick="resetQuiz()">Submit Another</button></div>`;
+    document.getElementById('quiz-success').style.display='';
+    if(mapInit2)initMap(true);
+  });
+}
+function resetQuiz(){qStep=0;qData={energizers:[],event_types:[],dietary:[]};qArr='';const c=document.getElementById('quiz-card');c.innerHTML=`<div class="prog"><div class="prog-f" id="quiz-progress" style="width:0%"></div></div><div class="step-row" id="quiz-dots"></div><div id="quiz-area"></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:22px"><button class="btn btn-g" id="quiz-back" onclick="prevQuiz()" style="display:none">← Back</button><div style="margin-left:auto;display:flex;align-items:center;gap:10px"><span id="quiz-ctr" style="font-size:12px;color:var(--sub)"></span><button class="btn btn-p" id="quiz-next" onclick="nextQuiz()" disabled>Next →</button></div></div>`;c.style.display='';document.getElementById('quiz-success').style.display='none';renderQuiz();}
+renderQuiz();
+
+/* ═══════ INTEREST MAP ═══════ */
+let mapInit2=false,mRaf=null,mDrag=null,mMembers=[],mFilter='all',mSearch='';
+let mNodes=[],mLinks=[],mAlpha=1;
+let mTx={x:0,y:0,s:0.85};let isPan=false,panL={x:0,y:0};
+function c2w2(cx,cy,W,H){return{x:(cx-W/2-mTx.x)/mTx.s,y:(cy-H/2-mTx.y)/mTx.s};}
+function gnM(id){return mNodes.find(n=>n.id===id);}
+
+function initMap(force=false){
+  if(mapInit2&&!force)return;mapInit2=true;
+  api.getMembers().then(members=>{
+    mMembers=members;buildMapStats2(members);buildLegend2();buildInsightBar2(members);buildGraph(members,'all');
+  });
+}
+function buildMapStats2(members){
+  const tc={morning:0,lunch:0,afternoon:0,evening:0};members.forEach(m=>{if(m.time_pref&&tc[m.time_pref]!==undefined)tc[m.time_pref]++;});
+  const topTime=Object.entries(tc).sort((a,b)=>b[1]-a[1])[0];
+  const at={};members.forEach(m=>(m.event_types||[]).forEach(t=>{at[t]=(at[t]||0)+1;}));
+  const topType=Object.entries(at).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('map-stats').innerHTML=`<div class="map-stat"><div class="ms-val">${members.length}</div><div class="ms-lbl">Team Members</div></div><div class="map-stat"><div class="ms-val" style="color:#fbbf24;text-transform:capitalize;font-size:15px">${topTime?topTime[0]:'—'}</div><div class="ms-lbl">Fav Event Time</div></div><div class="map-stat"><div class="ms-val" style="color:#34d399;font-size:13px">${topType?topType[0].split(' ').slice(0,2).join(' '):'—'}</div><div class="ms-lbl">Top Event Type</div></div><div class="map-stat"><div class="ms-val" style="color:#a78bfa">${members.filter(m=>m.group_size==='medium').length}</div><div class="ms-lbl">Prefer Medium Groups</div></div>`;
+}
+function buildLegend2(){const lg=document.getElementById('map-legend');lg.innerHTML=Object.entries(INT_CAT_COLORS).map(([cat,col])=>`<div class="leg-i"><div class="leg-d" style="background:${col}"></div>${INT_CATS[cat]}</div>`).join('');lg.innerHTML+=`<div class="leg-i" style="margin-left:8px"><div style="width:10px;height:10px;border-radius:50%;border:2px solid var(--border);flex-shrink:0"></div>Team Member</div><div class="leg-i" style="color:var(--sub);font-size:11px;margin-left:auto">Scroll to zoom · Drag to pan · Drag nodes</div>`;}
+function buildInsightBar2(members){const counts={};members.forEach(m=>{if(m.time_pref){const k='⏰ '+m.time_pref.charAt(0).toUpperCase()+m.time_pref.slice(1);counts[k]=(counts[k]||0)+1;}(m.energizers||[]).forEach(e=>{const k='⚡ '+e;counts[k]=(counts[k]||0)+1;});(m.event_types||[]).forEach(e=>{const k='🎯 '+e;counts[k]=(counts[k]||0)+1;});});const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8);const max=sorted[0]?sorted[0][1]:1;const colors={'⏰':'#fbbf24','⚡':'#34d399','🎯':'#60a5fa'};document.getElementById('insight-bar').innerHTML=sorted.map(([k,v])=>{const col=colors[k.slice(0,2).trim()]||BLUE;return`<div class="insight-row"><div class="insight-lbl">${k}</div><div class="insight-track"><div class="insight-fill" style="width:${(v/max)*100}%;background:${col}"></div></div><div class="insight-cnt">${v}</div></div>`;}).join('');}
+function setFilt(f,btn){mFilter=f;document.querySelectorAll('.map-fb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');buildGraph(mMembers,f);}
+function filterMap(){mSearch=document.getElementById('map-search').value.toLowerCase();buildGraph(mMembers,mFilter);}
+function resetView(){mTx={x:0,y:0,s:0.85};}
+function buildGraph(members,filter){
+  if(mRaf)cancelAnimationFrame(mRaf);mRaf=null;
+  const canvas=document.getElementById('map-canvas');const W=canvas.offsetWidth||900;canvas.width=W;mTx={x:0,y:0,s:0.85};mAlpha=1;
+  const fi=filter==='all'?INT_NODES:INT_NODES.filter(n=>n.cat===filter);
+  const mn=members.filter(m=>!mSearch||m.full_name.toLowerCase().includes(mSearch));
+  const usedIds=new Set();mn.forEach(m=>getMemberLinks(m).filter(id=>fi.some(n=>n.id===id)).forEach(id=>usedIds.add(id)));
+  const catOrder=['time','energy','event','size'];
+  const activeInt=fi.filter(n=>usedIds.has(n.id)).sort((a,b)=>catOrder.indexOf(a.cat)-catOrder.indexOf(b.cat));
+  const rR=Math.max(160,activeInt.length*14);
+  mNodes=[...activeInt.map((n,i)=>{const a=(i/activeInt.length)*Math.PI*2-Math.PI/2;return{...n,x:Math.cos(a)*rR,y:Math.sin(a)*rR,vx:0,vy:0,type:'interest'};}),
+    ...mn.map(m=>({id:m.id,label:m.full_name,type:'member',x:(Math.random()-.5)*100,y:(Math.random()-.5)*100,vx:0,vy:0,r:10,data:m}))];
+  mLinks=[];mn.forEach(m=>{getMemberLinks(m).filter(id=>usedIds.has(id)).forEach(id=>{mLinks.push({source:m.id,target:id});});});
+  setupCanvas2(canvas);animateMap();
+}
+function animateMap(){
+  const canvas=document.getElementById('map-canvas');if(!canvas)return;
+  const ctx=canvas.getContext('2d');const W=canvas.width,H=520;if(canvas.height!==H)canvas.height=H;
+  if(mAlpha>0.005){
+    mAlpha*=0.997;const af=mAlpha;
+    for(let i=0;i<mNodes.length;i++)for(let j=i+1;j<mNodes.length;j++){const a=mNodes[i],b=mNodes[j];const dx=b.x-a.x,dy=b.y-a.y,d=Math.sqrt(dx*dx+dy*dy)||0.1;const ar=a.type==='interest'?(a.r||20):11,br=b.type==='interest'?(b.r||20):11,minD=ar+br+22;if(d<minD*3){const f=(minD*3-d)/d*0.09*af;a.vx-=dx*f;a.vy-=dy*f;b.vx+=dx*f;b.vy+=dy*f;}}
+    mLinks.forEach(l=>{const s=gnM(l.source),t=gnM(l.target);if(!s||!t)return;const dx=t.x-s.x,dy=t.y-s.y,d=Math.sqrt(dx*dx+dy*dy)||0.1;const f=(d-85)/d*0.03*af;s.vx+=dx*f;s.vy+=dy*f;t.vx-=dx*f;t.vy-=dy*f;});
+    mNodes.forEach(n=>{n.vx-=n.x*0.0015*mAlpha;n.vy-=n.y*0.0015*mAlpha;n.vx*=0.84;n.vy*=0.84;if(n!==mDrag){n.x+=n.vx;n.y+=n.vy;}});
+  }
+  ctx.clearRect(0,0,W,H);ctx.save();ctx.translate(W/2+mTx.x,H/2+mTx.y);ctx.scale(mTx.s,mTx.s);
+  mLinks.forEach(l=>{const s=gnM(l.source),t=gnM(l.target);if(!s||!t)return;const intN=t.type==='interest'?t:s;ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(t.x,t.y);ctx.strokeStyle=intN.color+'40';ctx.lineWidth=1.5/mTx.s;ctx.stroke();});
+  mNodes.filter(n=>n.type==='member').forEach(n=>{ctx.beginPath();ctx.arc(n.x,n.y,10,0,Math.PI*2);ctx.fillStyle='#6e6e7399';ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1.5/mTx.s;ctx.stroke();});
+  mNodes.filter(n=>n.type==='interest').forEach(n=>{ctx.beginPath();ctx.arc(n.x,n.y,n.r+10,0,Math.PI*2);ctx.fillStyle=n.color+'18';ctx.fill();ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fillStyle=n.color;ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1.5/mTx.s;ctx.stroke();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';const parts=n.label.split(' ');const fs=Math.max(7,10/mTx.s);if(parts.length===1){ctx.font=`bold ${fs}px -apple-system,sans-serif`;ctx.fillText(n.label,n.x,n.y);}else{ctx.font=`bold ${fs+1}px -apple-system,sans-serif`;ctx.fillText(parts[0],n.x,n.y-fs*0.7);ctx.font=`${fs-1}px -apple-system,sans-serif`;ctx.fillText(parts.slice(1).join(' '),n.x,n.y+fs*0.8);}});
+  ctx.restore();mRaf=requestAnimationFrame(animateMap);
+}
+function setupCanvas2(canvas){
+  let rect=canvas.getBoundingClientRect();const W=()=>canvas.width,H=()=>canvas.height;
+  canvas.onwheel=e=>{e.preventDefault();rect=canvas.getBoundingClientRect();const cx=(e.clientX-rect.left)*(canvas.width/rect.width),cy=(e.clientY-rect.top)*(canvas.height/rect.height);const f=e.deltaY<0?1.12:0.89;const ns=Math.max(0.15,Math.min(6,mTx.s*f));const r=ns/mTx.s;mTx.x=(cx-W()/2)*(1-r)+mTx.x*r;mTx.y=(cy-H()/2)*(1-r)+mTx.y*r;mTx.s=ns;};
+  canvas.onmousedown=e=>{rect=canvas.getBoundingClientRect();const cx=(e.clientX-rect.left)*(canvas.width/rect.width),cy=(e.clientY-rect.top)*(canvas.height/rect.height);const w=c2w2(cx,cy,W(),H());mDrag=mNodes.find(n=>Math.hypot(n.x-w.x,n.y-w.y)<(n.type==='interest'?(n.r||20)+6:14))||null;if(!mDrag){isPan=true;panL={x:e.clientX,y:e.clientY};}if(mDrag)mAlpha=Math.max(mAlpha,0.4);};
+  canvas.onmousemove=e=>{rect=canvas.getBoundingClientRect();const cx=(e.clientX-rect.left)*(canvas.width/rect.width),cy=(e.clientY-rect.top)*(canvas.height/rect.height);const w=c2w2(cx,cy,W(),H());if(mDrag){mDrag.x=w.x;mDrag.y=w.y;mDrag.vx=0;mDrag.vy=0;}else if(isPan){mTx.x+=e.clientX-panL.x;mTx.y+=e.clientY-panL.y;panL={x:e.clientX,y:e.clientY};}
+    const hov=mNodes.find(n=>Math.hypot(n.x-w.x,n.y-w.y)<(n.type==='interest'?(n.r||20)+10:15));const tip=document.getElementById('tooltip');const tipX=cx*(rect.width/canvas.width),tipY=cy*(rect.height/canvas.height);
+    if(hov&&hov.type==='member'){const m=hov.data;const links=mLinks.filter(l=>l.source===m.id).map(l=>gnM(l.target)).filter(Boolean);tip.style.display='';tip.style.left=Math.min(tipX+14,rect.width-225)+'px';tip.style.top=Math.max(tipY-40,8)+'px';tip.innerHTML=`<div class="tt-n">${m.full_name}</div><div class="tt-s">${m.org_team||'Team'} · ${m.city||'Remote'}</div>${m.time_pref?`<div class="tt-row"><span class="tt-k">Best time</span><span class="tt-v" style="text-transform:capitalize">${m.time_pref}</span></div>`:''}<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">${links.map(n=>`<span style="background:${n.color}30;color:${n.color};padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600">${n.label}</span>`).join('')}</div>`;}
+    else if(hov&&hov.type==='interest'){const conn=mLinks.filter(l=>l.target===hov.id).map(l=>gnM(l.source)).filter(Boolean);tip.style.display='';tip.style.left=Math.min(tipX+14,rect.width-225)+'px';tip.style.top=Math.max(tipY-40,8)+'px';tip.innerHTML=`<div class="tt-n">${hov.label}</div><div class="tt-s" style="color:${hov.color};font-weight:600">${conn.length} ${conn.length===1?'person':'people'} share this</div><div style="margin-top:8px;font-size:12px;color:var(--sub);line-height:1.7">${conn.map(n=>n.label).join(' · ')||'—'}</div>`;}
+    else tip.style.display='none';
+    canvas.style.cursor=hov?'pointer':(isPan||mDrag)?'grabbing':'grab';};
+  canvas.onmouseup=()=>{mDrag=null;isPan=false;};
+  canvas.onmouseleave=()=>{mDrag=null;isPan=false;document.getElementById('tooltip').style.display='none';};
+  window.addEventListener('resize',()=>{rect=canvas.getBoundingClientRect();});
+}
+</script>
+</body>
+</html>
