@@ -224,8 +224,8 @@ canvas{display:block;width:100%;cursor:grab}canvas:active{cursor:grabbing}
 /* RESULTS */
 .result-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:10px}
 .custom-sum{background:linear-gradient(135deg,#0071e3,#34aadc);border-radius:13px;padding:18px 20px;color:#fff;margin-bottom:20px;font-size:14px;line-height:1.6}
-.video platform-tip{background:#e8f2ff;border-radius:10px;padding:10px 14px;font-size:12px;color:#0071e3;margin-top:10px;border-left:3px solid #0071e3}
-[data-dark] .video platform-tip{background:#0a2d54}
+.webex-tip{background:#e8f2ff;border-radius:10px;padding:10px 14px;font-size:12px;color:#0071e3;margin-top:10px;border-left:3px solid #0071e3}
+[data-dark] .webex-tip{background:#0a2d54}
 .eg-agent{background:var(--tag);border-radius:12px;padding:16px;margin-top:12px;font-size:12px;line-height:1.65;color:var(--sec)}
 .akey{color:#0071e3;font-weight:600}
 .tok-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
@@ -1246,7 +1246,7 @@ function showResults(evs){
   let html=`<div class="result-hdr"><div><div class="pg-title" style="font-size:19px">✨ Your Custom Event Plan</div><div style="font-size:13px;color:var(--sub)">${evs.length} option${evs.length!==1?'s':''} ranked for you</div></div><button class="btn btn-o" onclick="resetPortal()">Start Over</button></div>`;
   html+=`<div class="custom-sum">Here's your plan — a ${pAns.category} event, ${FMT[pAns.format]||pAns.format}, for ${pAns.headcount} people with ${BUD[pAns.budget]||pAns.budget} (${BP[pAns.budget]||''}). Goal: walk away feeling ${FL[pAns.feeling]||pAns.feeling}. Results ranked for your situation.</div>`;
   evs.slice(0,5).forEach((ev,i)=>{
-    const feat=i===0,sw=ev.video platform&&(pAns.format==='virtual'||pAns.format==='hybrid');
+    const feat=i===0,sw=ev.webex&&(pAns.format==='virtual'||pAns.format==='hybrid');
     const bTag=ev.budget==='none'?'Free':BP[ev.budget]||ev.budget;
     html+=`<div class="card${feat?' card-feat':''} fade" style="margin-bottom:14px">
       ${feat?'<div class="badge-best">⭐ Top Pick</div>':''}
@@ -1257,7 +1257,7 @@ function showResults(evs){
             <span class="tag t-gray">📍 ${ev.format}</span><span class="tag t-gray">💰 ${bTag}</span><span class="tag t-gray">⏱ ${ev.duration}</span>
           </div>
           <p style="font-size:13px;line-height:1.6;color:var(--sec)">${ev.description}</p>
-          ${sw?`<div class="video platform-tip">💻 <strong>video platform tip:</strong> ${ev.video platform}</div>`:''}
+          ${sw?`<div class="video platform-tip">💻 <strong>video platform tip:</strong> ${ev.webex}</div>`:''}
         </div>
         <button class="btn btn-g" style="flex-shrink:0;font-size:12px" onclick="togCL(this,'cl-${ev.id}')">▼ Checklist</button>
       </div>
@@ -1718,7 +1718,7 @@ function eventToTemplate(e){
   let plan=`OVERVIEW\n${e.description}`;
   if(e.timeslot&&e.timeslot!=='any') plan+=`\n\nBEST TIME\n${e.timeslot.charAt(0).toUpperCase()+e.timeslot.slice(1)}`;
   plan+=`\n\nFORMAT\n${(FMT_LABEL[e.format]||e.format).toUpperCase()} · ${DUR_LABEL[e.duration]||e.duration} · ${HC_LABEL[e.headcount]||e.headcount} people`;
-  if(e.video platform) plan+=`\n\nWEBEX SETUP\n${e.video platform}`;
+  if(e.webex) plan+=`\n\nWEBEX SETUP\n${e.webex}`;
   plan+=`\n\nLOGISTICS CHECKLIST`;
   (e.checklist||[]).forEach(c=>{plan+=`\n□ ${c}`;});
   return{
@@ -1732,7 +1732,7 @@ function eventToTemplate(e){
     lead:LEAD_LABEL[e.leadtime]||e.leadtime,
     tags:[e.category,e.format,...(e.goal||[]),...(e.checklist||[]).slice(0,0)].filter(Boolean),
     summary:e.description,
-    webex:e.video platform,
+    webex:e.webex,
     plan,
     contributor:'Events Team'
   };
@@ -1783,7 +1783,7 @@ function renderLibrary(){
       </div>
       <div style="padding:16px 20px 20px">
         <p style="font-size:13px;color:var(--sub);line-height:1.55;margin-bottom:16px">${t.summary}</p>
-        ${t.video platform?`<div style="background:var(--opt-sel-bg);border-left:3px solid #0071e3;border-radius:8px;padding:8px 12px;font-size:12px;color:#0071e3;margin-bottom:14px">💻 <strong>webex:</strong> ${t.video platform}</div>`:''}
+        ${t.webex?`<div style="background:var(--opt-sel-bg);border-left:3px solid #0071e3;border-radius:8px;padding:8px 12px;font-size:12px;color:#0071e3;margin-bottom:14px">💻 <strong>webex:</strong> ${t.webex}</div>`:''}
         <div style="display:flex;gap:8px">
           <button class="btn btn-p" style="flex:1;font-size:12px;justify-content:center" onclick="downloadPlan('${t.id}')">📄 Download Plan + Checklist</button>
           <button class="btn btn-g" style="font-size:12px" onclick="previewPlan('${t.id}')">Preview</button>
