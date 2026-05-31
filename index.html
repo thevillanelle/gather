@@ -524,7 +524,7 @@ are sharp, and they can tell when something is generic.</div>
 
   <!-- Events Team Team Accordion -->
   <div class="card" style="margin-bottom:18px">
-    <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="togEvents TeamTeam()" id="eec-accord-hdr">
+    <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="togEventsTeam()" id="eec-accord-hdr">
       <div>
         <div style="font-size:16px;font-weight:700;color:var(--text)">👋 Meet Your Events Team Team</div>
         <div style="font-size:13px;color:var(--sub);margin-top:2px">The people behind your engagement experience — say hi!</div>
@@ -869,7 +869,7 @@ const ORG_TEAMS = [
   {group:'Platforms',teams:['AML — Applied Machine Learning','SWE — Software Engineering']},
 ];
 
-const Events Team_TEAM=[
+const EVENTS_TEAM=[
   {name:"Alex Rivera",emoji:"🙆🏼‍♀️",bio:"Allison leads the Employee Engagement & Communications team from Sunnyvale.",contact:"events@yourorg.com"},
   {name:"Jordan Kim",emoji:"👩🏽‍🦱",bio:"Tyreisha manages our Employee Engagement programs for Your Org and is the Engagement Lead for SCV.",contact:"events@yourorg.com"},
   {name:"Sam Okonkwo",emoji:"👨🏻‍🎨",bio:"Kyle manages Your Org creative and multimedia requests, with a focus on values and onboarding.",contact:"creative@yourorg.com"},
@@ -1416,13 +1416,13 @@ document.getElementById('main-tabs').style.display='none';
 /* ═══════════════════════════
    Events Team TEAM ACCORDION
 ═══════════════════════════ */
-function togEvents TeamTeam(){
+function togEventsTeam(){
   const body=document.getElementById('eec-accord-body');
   const arrow=document.getElementById('eec-accord-arrow');
   const open=body.style.display==='none';
   body.style.display=open?'':'none';
   arrow.textContent=open?'▲ Hide team':'▼ Show team';
-  if(open&&!document.getElementById('eec-team-grid').innerHTML.trim()) renderEvents TeamTeam();
+  if(open&&!document.getElementById('eec-team-grid').innerHTML.trim()) renderEventsTeam();
 }
 
 /* ═══════════════════════════
@@ -1438,9 +1438,9 @@ let isPanning=false,panLast={x:0,y:0};
 function c2w(cx,cy,W,H){return{x:(cx-W/2-mTx.x)/mTx.s,y:(cy-H/2-mTx.y)/mTx.s};}
 function w2c(wx,wy,W,H){return{x:wx*mTx.s+W/2+mTx.x,y:wy*mTx.s+H/2+mTx.y};}
 
-function renderEvents TeamTeam(){
+function renderEventsTeam(){
   const g=document.getElementById('eec-team-grid');if(!g||g.innerHTML.trim()!=='')return;
-  g.innerHTML=Events Team_TEAM.map(m=>`<div class="team-card"><span class="team-emoji">${m.emoji}</span><div class="team-name">${m.name}</div><div class="team-bio">${m.bio}</div><a href="mailto:${m.contact}" class="team-contact">Contact me</a></div>`).join('');
+  g.innerHTML=EVENTS_TEAM.map(m=>`<div class="team-card"><span class="team-emoji">${m.emoji}</span><div class="team-name">${m.name}</div><div class="team-bio">${m.bio}</div><a href="mailto:${m.contact}" class="team-contact">Contact me</a></div>`).join('');
 }
 
 function initInterestMap(force=false){
