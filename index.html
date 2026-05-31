@@ -261,12 +261,7 @@ canvas{display:block;width:100%;cursor:grab}canvas:active{cursor:grabbing}
 <div id="splash">
   <canvas id="splash-canvas"></canvas>
   <div id="splash-inner">
-    <svg width="130" height="154" viewBox="0 0 140 165" fill="none">
-      <path d="M70 6 L128 30 L128 96 Q128 140 70 158 Q12 140 12 96 L12 30 Z" fill="#080d1c" stroke="rgba(255,255,255,0.85)" stroke-width="2.5"/>
-      <path d="M70 14 L122 36 L122 96 Q122 134 70 151 Q18 134 18 96 L18 36 Z" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
-      <text x="70" y="94" text-anchor="middle" font-size="42" font-weight="900" fill="white" font-family="-apple-system,sans-serif" letter-spacing="-1">Your Org</text>
-      <text x="70" y="115" text-anchor="middle" font-size="8" fill="rgba(255,255,255,.65)" font-family="-apple-system,sans-serif" letter-spacing="1.5">YOUR ORGANIZATION</text>
-    </svg>
+    <div style="font-size:80px;filter:drop-shadow(0 0 24px rgba(52,170,220,.5));margin-bottom:8px">🌐</div>
     <div id="splash-hub">Gather</div>
     <div id="splash-tag">Protect · Optimize · Empower</div>
     <div><span class="sdot-a"></span><span class="sdot-a"></span><span class="sdot-a"></span></div>
@@ -279,11 +274,8 @@ canvas{display:block;width:100%;cursor:grab}canvas:active{cursor:grabbing}
   <div class="hdr-inner">
     <div class="hdr-top">
       <div class="logo">
-        <svg width="26" height="31" viewBox="0 0 140 165" fill="none">
-          <path d="M70 6 L128 30 L128 96 Q128 140 70 158 Q12 140 12 96 L12 30 Z" fill="var(--text)" stroke="var(--text)" stroke-width="2"/>
-          <text x="70" y="96" text-anchor="middle" font-size="46" font-weight="900" fill="var(--bg)" font-family="-apple-system,sans-serif" letter-spacing="-1">Your Org</text>
-        </svg>
-        <div><div class="logo-title">Gather</div><div class="logo-sub">Your Organization · Events Team</div></div>
+        <span style="font-size:22px">🌐</span>
+        <div><div class="logo-title">Gather</div><div class="logo-sub">Team Event Intelligence</div></div>
       </div>
       <div class="hdr-right">
         <div class="live-badge"><div class="live-dot"></div>Live Demo</div>
@@ -313,8 +305,8 @@ canvas{display:block;width:100%;cursor:grab}canvas:active{cursor:grabbing}
     <div style="position:relative;z-index:2">
       <svg width="64" height="76" viewBox="0 0 140 165" fill="none" style="margin:0 auto 20px;display:block;filter:drop-shadow(0 0 24px rgba(52,170,220,.5))">
         <path d="M70 6 L128 30 L128 96 Q128 140 70 158 Q12 140 12 96 L12 30 Z" fill="rgba(8,13,28,0.8)" stroke="rgba(255,255,255,0.85)" stroke-width="2.5"/>
-        <text x="70" y="94" text-anchor="middle" font-size="42" font-weight="900" fill="white" font-family="-apple-system,sans-serif" letter-spacing="-1">Your Org</text>
-        <text x="70" y="115" text-anchor="middle" font-size="8" fill="rgba(255,255,255,.65)" font-family="-apple-system,sans-serif" letter-spacing="1.5">YOUR ORGANIZATION</text>
+        <text x="70" y="94" text-anchor="middle" font-size="42" font-weight="900" fill="white" font-family="-apple-system,sans-serif" letter-spacing="-1">Gather</text>
+        <text x="70" y="115" text-anchor="middle" font-size="8" fill="rgba(255,255,255,.65)" font-family="-apple-system,sans-serif" letter-spacing="1.5">Gather</text>
       </svg>
       <h1 style="color:#fff;font-size:32px;font-weight:800;letter-spacing:-.5px;margin-bottom:10px">Gather</h1>
       <p style="color:rgba(255,255,255,.55);font-size:15px;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Employee Engagement & Communications · Your Org</p>
@@ -868,7 +860,7 @@ function dismissSplash(){const s=document.getElementById('splash');s.style.opaci
 /* ═══════════════════════════
    DATA — REAL Your Org TEAMS
 ═══════════════════════════ */
-const Your Org_TEAMS = [
+const ORG_TEAMS = [
   {group:'Events Team',teams:['Events Team — Employee Engagement & Communications']},
   {group:'Compliance & Digital Fraud',teams:['AMP — Apple Media Products','Compliance — Hermes Financial Crimes','Wallet — Apple Pay, Cash, Card & Savings']},
   {group:'Retail',teams:['ASO — Apple Store Online','RDA — Retail Decision Automation']},
@@ -1343,7 +1335,7 @@ function renderQuiz(){
   }
   else if(s.type==='sds_team'){
     let sel=`<select id="qi-sds_team" onchange="qSD('sds_team',this.value);chkQN()"><option value="">Select your team...</option>`;
-    Your Org_TEAMS.forEach(g=>{sel+=`<optgroup label="${g.group}">`;g.teams.forEach(t=>{sel+=`<option value="${t}" ${qTeam===t?'selected':''}>${t}</option>`;});sel+=`</optgroup>`;});
+    ORG_TEAMS.forEach(g=>{sel+=`<optgroup label="${g.group}">`;g.teams.forEach(t=>{sel+=`<option value="${t}" ${qTeam===t?'selected':''}>${t}</option>`;});sel+=`</optgroup>`;});
     sel+=`</select>`;
     html+=sel;
     html+=`<div style="margin-top:14px"><label class="lbl">Sub-group or function (optional)</label><input type="text" id="qi-subgroup" value="${qData.subgroup||''}" placeholder="e.g. Screening, Decision Science, Platform Eng" oninput="qSD('subgroup',this.value)"></div>`;
